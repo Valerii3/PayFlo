@@ -131,7 +131,7 @@ class RoomSelectionScreen : Screen {
 
             Button(
                 onClick = {
-                    // TODO: Navigate to create room screen
+                    navigator.push(CreateRoomScreen())
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -307,52 +307,3 @@ class JoinScreen : Screen {
         }
     }
 }
-/*
-@Composable
-fun WelcomeScreen(viewModel: AppViewModel, onGetStarted: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var login by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        TextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Your Name") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextField(
-            value = login,
-            onValueChange = { login = it },
-            label = { Text("Unique Login") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        error?.let { Text(it, color = Color.Red) }
-
-        Button(
-            onClick = {
-                try {
-                    viewModel.setUserName(name)
-                    viewModel.setLogin(login)
-                    onGetStarted()
-                } catch (e: IllegalArgumentException) {
-                    error = e.message
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Get Started")
-        }
-    }
-}
-*/
