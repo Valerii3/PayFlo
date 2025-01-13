@@ -14,6 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.valerii.payflo.BottomNavItem
 
 class MainScreen : Screen {
@@ -38,7 +40,7 @@ class MainScreen : Screen {
         ) { padding ->
             Box(modifier = Modifier.padding(padding)) {
                 when (selectedItem) {
-                    BottomNavItem.Groups -> GroupsScreen()
+                    BottomNavItem.Groups -> GroupsScreen(LocalNavigator.currentOrThrow)
                     BottomNavItem.Profile -> ProfileScreen()
                 }
             }
