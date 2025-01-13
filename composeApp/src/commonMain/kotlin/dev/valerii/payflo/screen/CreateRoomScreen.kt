@@ -23,8 +23,6 @@ data class Friend(
     val id: String,
     val name: String,
     val avatarUrl: String? = null,
-    val lastSeen: String,
-    val isOnline: Boolean = false
 )
 
 class CreateRoomScreen : Screen {
@@ -38,12 +36,12 @@ class CreateRoomScreen : Screen {
         // Sample friends data (you would get this from your data source)
         val allFriends = remember {
             listOf(
-                Friend("1", "Artin", null, "last seen recently"),
-                Friend("2", "Bering", null, "last seen yesterday at 12:42"),
-                Friend("3", "Boat Paleokk", null, "last seen 4 hours ago"),
-                Friend("4", "Germania Nooksks", null, "last seen 05.12.24"),
-                Friend("5", "Gleb Ingman", null, "online", true),
-                Friend("6", "Interview", null, "last seen 15.04.24")
+                Friend("1", "Artin", null),
+                Friend("2", "Bering", null),
+                Friend("3", "Boat Paleokk", null),
+                Friend("4", "Germania Nooksks", null),
+                Friend("5", "Gleb Ingman", null),
+                Friend("6", "Interview", null)
             )
         }
 
@@ -79,9 +77,9 @@ class CreateRoomScreen : Screen {
                     actions = {
                         TextButton(
                             onClick = {
-                                // TODO: Navigate to step 2 with selected friends
+                               navigator.push(NewGroupScreen(selectedFriends))
                             },
-                            enabled = selectedFriends.isNotEmpty()
+                            enabled = true
                         ) {
                             Text("Next")
                         }
@@ -145,24 +143,13 @@ class CreateRoomScreen : Screen {
                                 )
 
                                 // Friend info
-                                Column(
+                                Text(
+                                    text = friend.name,
+                                    style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier
                                         .weight(1f)
                                         .padding(start = 8.dp)
-                                ) {
-                                    Text(
-                                        text = friend.name,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = if (friend.isOnline) "online" else friend.lastSeen,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (friend.isOnline)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                )
                             }
                         }
                     }
