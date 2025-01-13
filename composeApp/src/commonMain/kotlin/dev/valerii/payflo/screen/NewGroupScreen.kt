@@ -44,6 +44,7 @@ class NewGroupScreen(
                         TextButton(
                             onClick = {
                                 // TODO: Create group and navigate to it
+                                navigator.push(MainScreen())
                             },
                             enabled = groupName.isNotBlank()
                         ) {
