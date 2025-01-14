@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    kotlin("plugin.serialization") version "1.9.0"
 }
 
 kotlin {
@@ -27,6 +28,7 @@ kotlin {
             implementation("io.ktor:ktor-client-content-negotiation:3.0.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.2")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+            implementation("io.ktor:ktor-client-serialization:3.0.2")
         }
 
         androidMain.dependencies {

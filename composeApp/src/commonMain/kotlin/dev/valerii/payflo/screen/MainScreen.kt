@@ -22,6 +22,7 @@ class MainScreen : Screen {
 
     @Composable
     override fun Content() {
+        val navigator = LocalNavigator.currentOrThrow
         var selectedItem by remember { mutableStateOf<BottomNavItem>(BottomNavItem.Groups) }
 
         Scaffold(
@@ -41,7 +42,7 @@ class MainScreen : Screen {
             Box(modifier = Modifier.padding(padding)) {
                 when (selectedItem) {
                     BottomNavItem.Groups -> GroupsScreen(LocalNavigator.currentOrThrow)
-                    BottomNavItem.Profile -> ProfileScreen()
+                    BottomNavItem.Profile -> navigator.push(ProfileScreen())
                 }
             }
         }

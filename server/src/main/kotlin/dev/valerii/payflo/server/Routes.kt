@@ -28,6 +28,7 @@ fun Route.userRoutes() {
 
     get("/users/{id}") {
         val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+        println("ID in server: $id")
         val user = transaction {
             Users.selectAll()
                 .where { Users.id eq id }
