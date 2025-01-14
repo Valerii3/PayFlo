@@ -117,17 +117,7 @@ class ProfileScreen : Screen, KoinComponent {
                                     .clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
-                           /* println("Debug - Profile URL: data:image/jpeg;base64,${state.user.profilePicture!!.take(100)}...")
-                            KamelImage(
-                                resource = asyncPainterResource("data:image/jpeg;base64,${state.user.profilePicture!!}"),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop,
-                                onLoading = { println("Debug - Image loading...") },
-                                onFailure = { error -> println("Debug - Image loading failed: $error") }
-                            ) */
+
                         } else {
                             Surface(
                                 modifier = Modifier

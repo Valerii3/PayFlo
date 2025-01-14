@@ -8,3 +8,18 @@ object Users : Table() {
     val profilePicture = text("profile_picture").nullable()
     override val primaryKey = PrimaryKey(id)
 }
+
+object Groups : Table() {
+    val id = varchar("id", 128)
+    val inviteCode = varchar("invite_code", 6).uniqueIndex()  // Add unique constraint
+    val name = varchar("name", 255)
+    val totalAmount = double("total_amount")
+    val creatorId = varchar("creator_id", 128).references(Users.id)
+    override val primaryKey = PrimaryKey(id)
+}
+
+object GroupMembers : Table() {
+    val groupId = varchar("group_id", 128).references(Groups.id)
+    val userId = varchar("user_id", 128).references(Users.id)
+    override val primaryKey = PrimaryKey(groupId, userId)
+}

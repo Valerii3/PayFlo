@@ -17,30 +17,9 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 class ProfileViewModel(
     private val userRepository: UserRepository,
     private val settingsStorage: SettingsStorage,
- //   private val imagePicker: ImagePicker
 ) {
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState
-
-
-  /*  fun pickAndUploadImage() {
-        scope.launch {
-            try {
-                val currentState = _uiState.value
-                if (currentState is ProfileUiState.Success) {
-                    println("Starting image pick") // Debug log
-                    val imageData = imagePicker.pickImage() ?: return@launch
-                    val base64Image = imageData.encodeBase64()
-                    val updatedUser = currentState.user.copy(profilePicture = base64Image)
-                    val result = userRepository.updateUser(updatedUser)
-                    _uiState.value = ProfileUiState.Success(result)
-                }
-            } catch (e: Exception) {
-                _uiState.value = ProfileUiState.Error("Failed to upload image: ${e.message}")
-            }
-        }
-
-    } */
 
     fun loadProfile() {
         _uiState.value = ProfileUiState.Loading
