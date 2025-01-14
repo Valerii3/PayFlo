@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import dev.valerii.payflo.models.AppViewModel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -18,13 +17,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,16 +37,35 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.valerii.payflo.ioDispatcher
+import dev.valerii.payflo.model.UserCredentials
+import dev.valerii.payflo.repository.UserRepository
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.mp.KoinPlatform.getKoin
 
 class WelcomeScreen : Screen {
+    private val userRepository: UserRepository by lazy { getKoin().get<UserRepository>() }
     @Composable
     override fun Content() {
         var name by remember { mutableStateOf(TextFieldValue()) }
-        var username by remember { mutableStateOf(TextFieldValue()) }
         var isError by remember { mutableStateOf(false) }
         var errorMessage by remember { mutableStateOf("") }
+        var isLoading by remember { mutableStateOf(false) }
 
         val navigator = LocalNavigator.currentOrThrow
+        val scope = rememberCoroutineScope { ioDispatcher }
+
+        LaunchedEffect(Unit) {
+            withContext(ioDispatcher) {
+                val credentials = userRepository.getSavedCredentials()
+                if (credentials != null) {
+                    navigator.replace(MainScreen())
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -68,16 +90,6 @@ class WelcomeScreen : Screen {
                 isError = isError
             )
 
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                isError = isError
-            )
-
             if (isError) {
                 Text(
                     text = errorMessage,
@@ -88,18 +100,36 @@ class WelcomeScreen : Screen {
 
             Button(
                 onClick = {
-                    if (name.text.isBlank() || username.text.isBlank()) {
+                    if (name.text.isBlank()) {
                         isError = true
                         errorMessage = "Please fill in all fields"
-                    } else {
-                        // TODO: Check username uniqueness
-                        // TODO: Save user data
-                        navigator.push(RoomSelectionScreen())
+                        return@Button
+                    }
+                    isLoading = true
+                    scope.launch {
+                        try {
+                            val user = userRepository.createUser(name.text)
+                            userRepository.saveCredentials(UserCredentials(user.id))
+                            navigator.replace(MainScreen())
+                        } catch (e: Exception) {
+                            isError = true
+                            errorMessage = e.message ?: "Failed to create user"
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
             ) {
-                Text("Get Started")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Get Started")
+                }
             }
         }
     }
