@@ -23,3 +23,9 @@ object GroupMembers : Table() {
     val userId = varchar("user_id", 128).references(Users.id)
     override val primaryKey = PrimaryKey(groupId, userId)
 }
+
+object Contacts : Table() {
+    val userId = varchar("user_id", 128).references(Users.id)
+    val friendId = varchar("friend_id", 128).references(Users.id)
+    override val primaryKey = PrimaryKey(userId, friendId)
+}

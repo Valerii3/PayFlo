@@ -17,6 +17,14 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.valerii.payflo.repository.ContactRepository
+import dev.valerii.payflo.repository.UserRepository
+import dev.valerii.payflo.storage.SettingsStorage
+import dev.valerii.payflo.viewmodel.CreateRoomUiState
+import dev.valerii.payflo.viewmodel.CreateRoomViewModel
+import org.koin.core.Koin
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 
 data class Friend(
@@ -25,37 +33,22 @@ data class Friend(
     val avatarUrl: String? = null,
 )
 
-class CreateRoomScreen : Screen {
+class CreateRoomScreen : Screen, KoinComponent {
+    private val contactRepository: ContactRepository by inject()
+    private val settingsStorage: SettingsStorage by inject()
+    private val viewModel = CreateRoomViewModel(contactRepository, settingsStorage)
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val uiState by viewModel.uiState.collectAsState()
         var searchQuery by remember { mutableStateOf("") }
         var selectedFriends by remember { mutableStateOf(setOf<String>()) }
 
-        // Sample friends data (you would get this from your data source)
-        val allFriends = remember {
-            listOf(
-                Friend("1", "Artin", null),
-                Friend("2", "Bering", null),
-                Friend("3", "Boat Paleokk", null),
-                Friend("4", "Germania Nooksks", null),
-                Friend("5", "Gleb Ingman", null),
-                Friend("6", "Interview", null)
-            )
+        LaunchedEffect(Unit) {
+            viewModel.loadFriends()
         }
-
-        // Filter friends based on search query
-        val filteredFriends = allFriends.filter {
-            it.name.lowercase().contains(searchQuery.lowercase())
-        }
-
-        // Group friends by first letter
-        val groupedFriends = filteredFriends
-            .groupBy { it.name.first().uppercase() }
-            .toList()  // converts to list of pairs
-            .sortedBy { it.first }  // sorts by the letter
-            .toMap()
 
         Scaffold(
             topBar = {
@@ -63,10 +56,18 @@ class CreateRoomScreen : Screen {
                     title = {
                         Column {
                             Text("New Group")
-                            Text(
-                                "${selectedFriends.size}/${allFriends.size}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            when (val state = uiState) {
+                                is CreateRoomUiState.Success -> {
+                                    Text(
+                                        "${selectedFriends.size}/${state.friends.size}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                else -> Text(
+                                    "0/0",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
                     },
                     navigationIcon = {
@@ -106,50 +107,73 @@ class CreateRoomScreen : Screen {
                     singleLine = true
                 )
 
-                // Friends list
-                LazyColumn {
-                    groupedFriends.forEach { (letter, friends) ->
-                        // Letter header
-                        item {
-                            Text(
-                                text = letter,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                when (val state = uiState) {
+                    is CreateRoomUiState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+
+                    is CreateRoomUiState.Error -> {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    is CreateRoomUiState.Success -> {
+                        val filteredFriends = state.friends.filter {
+                            it.name.contains(searchQuery, ignoreCase = true)
                         }
 
-                        // Friends under this letter
-                        items(friends) { friend ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Checkbox
-                                Checkbox(
-                                    checked = selectedFriends.contains(friend.id),
-                                    onCheckedChange = { checked ->
-                                        selectedFriends = if (checked) {
-                                            selectedFriends + friend.id
-                                        } else {
-                                            selectedFriends - friend.id
-                                        }
-                                    }
-                                )
+                        val groupedFriends = filteredFriends
+                            .groupBy { it.name.first().uppercase() }
+                            .toList()
+                            .sortedBy { it.first }
+                            .toMap()
 
-                                // Friend info
-                                Text(
-                                    text = friend.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(start = 8.dp)
-                                )
+                        LazyColumn {
+                            groupedFriends.forEach { (letter, friends) ->
+                                item {
+                                    Text(
+                                        text = letter,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                items(friends) { friend ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                            checked = selectedFriends.contains(friend.id),
+                                            onCheckedChange = { checked ->
+                                                selectedFriends = if (checked) {
+                                                    selectedFriends + friend.id
+                                                } else {
+                                                    selectedFriends - friend.id
+                                                }
+                                            }
+                                        )
+
+                                        Text(
+                                            text = friend.name,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(start = 8.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
