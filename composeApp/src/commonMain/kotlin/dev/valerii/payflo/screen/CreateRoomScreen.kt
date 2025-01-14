@@ -17,37 +17,61 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.valerii.payflo.elements.CreateGroupDialog
 import dev.valerii.payflo.repository.ContactRepository
+import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.CreateRoomUiState
 import dev.valerii.payflo.viewmodel.CreateRoomViewModel
+import dev.valerii.payflo.viewmodel.GroupCreationState
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 
-data class Friend(
-    val id: String,
-    val name: String,
-    val avatarUrl: String? = null,
-)
-
 class CreateRoomScreen : Screen, KoinComponent {
     private val contactRepository: ContactRepository by inject()
     private val settingsStorage: SettingsStorage by inject()
-    private val viewModel = CreateRoomViewModel(contactRepository, settingsStorage)
+    private val groupRepository: GroupRepository by inject()
+    private val viewModel = CreateRoomViewModel(contactRepository, settingsStorage, groupRepository)
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val uiState by viewModel.uiState.collectAsState()
+        val groupCreationState by viewModel.groupCreationState.collectAsState()
         var searchQuery by remember { mutableStateOf("") }
         var selectedFriends by remember { mutableStateOf(setOf<String>()) }
+        var showCreateGroupDialog by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             viewModel.loadFriends()
+        }
+
+        LaunchedEffect(groupCreationState) {
+            when (groupCreationState) {
+                is GroupCreationState.Success -> {
+                    navigator.push(MainScreen())
+                }
+                is GroupCreationState.Error -> {
+                    // Handle error
+                }
+                else -> { /* Loading or Idle state */ }
+            }
+        }
+
+        if (showCreateGroupDialog) {
+            CreateGroupDialog(
+                selectedFriendIds = selectedFriends,
+                onDismiss = { showCreateGroupDialog = false },
+                onConfirm = { groupName ->
+                    // TODO: Handle group creation
+                    viewModel.createGroup(groupName, selectedFriends)
+                   // navigator.push(MainScreen())
+                }
+            )
         }
 
         Scaffold(
@@ -77,9 +101,7 @@ class CreateRoomScreen : Screen, KoinComponent {
                     },
                     actions = {
                         TextButton(
-                            onClick = {
-                               navigator.push(NewGroupScreen(selectedFriends))
-                            },
+                            onClick = { showCreateGroupDialog = true },
                             enabled = true
                         ) {
                             Text("Next")

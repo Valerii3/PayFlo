@@ -1,7 +1,5 @@
 package dev.valerii.payflo.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,12 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,38 +28,29 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.key.Key.Companion.R
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import dev.valerii.payflo.ByteArrayImage
 import dev.valerii.payflo.ioDispatcher
-import dev.valerii.payflo.picker.ImagePicker
 import dev.valerii.payflo.rememberImagePicker
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.ProfileUiState
 import dev.valerii.payflo.viewmodel.ProfileViewModel
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
 import io.ktor.util.decodeBase64Bytes
-import io.ktor.util.decodeBase64String
 import kotlinx.coroutines.withContext
-import org.jetbrains.compose.resources.painterResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import kotlin.io.encoding.Base64
 
 class ProfileScreen : Screen, KoinComponent {
     private val userRepository: UserRepository by inject()
     private val settingsStorage: SettingsStorage by inject()
-    /* private val imagePicker by inject<ImagePicker>() */
-    private val viewModel by lazy { ProfileViewModel(userRepository, settingsStorage/*, imagePicker*/) }
+    private val viewModel by lazy { ProfileViewModel(userRepository, settingsStorage) }
 
     @Composable
     override fun Content() {
