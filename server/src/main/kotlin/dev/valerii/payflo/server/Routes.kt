@@ -1,5 +1,9 @@
 package dev.valerii.payflo.server
 
+import dev.valerii.payflo.model.CreateGroupRequest
+import dev.valerii.payflo.model.Group
+import dev.valerii.payflo.model.User
+import dev.valerii.payflo.server.database.Contacts
 import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.GroupMembers
 import dev.valerii.payflo.server.database.Users
@@ -10,7 +14,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
+import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.alias
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -79,35 +85,54 @@ fun Route.userRoutes() {
     }
 
     post("/groups") {
-        val params = call.receive<Map<String, Any>>()
+        println("WITHIN POST")
+        val request = call.receive<CreateGroupRequest>()
+        println("RECEIVED PARAMS: $request")
+        // Generate necessary values for the group
         val groupId = UUID.randomUUID().toString()
-        val creatorId = params["creatorId"] as? String
-            ?: throw IllegalArgumentException("Creator ID is required")
-
+     /*   val creatorId = params["creatorId"] as? String
+            ?: return@post call.respond(HttpStatusCode.BadRequest, "Creator ID is required")
+        val memberIds = params["memberIds"] as? List<String> ?: emptyList() */
         val inviteCode = generateUniqueInviteCode()
+        println("UNDER POST")
+        try {
+            // Use a transaction block to insert into the database
+            val group = transaction {
+                // Insert group into the Groups table
+                Groups.insert {
+                    it[id] = groupId
+                    it[name] = request.name
+                    it[photo] = request.photo
+                    it[this.inviteCode] = inviteCode
+                    it[totalAmount] = request.totalAmount
+                    it[creatorId] = request.creatorId
+                }
 
-        transaction {
-            Groups.insert {
-                it[id] = groupId
-                it[name] = params["name"] as? String
-                    ?: throw IllegalArgumentException("Name is required")
-                it[this.inviteCode] = inviteCode
-                it[totalAmount] = params["totalAmount"] as? Double ?: 0.0
-                it[Groups.creatorId] = creatorId
-            }
+                // Add all members (including the creator) to the GroupMembers table
+                val membersList = (request.memberIds + request.creatorId).distinct()
+                membersList.forEach { memberId ->
+                    GroupMembers.insert {
+                        it[this.groupId] = groupId
+                        it[userId] = memberId
+                    }
+                }
 
-            // Add creator as first member
-            GroupMembers.insert {
-                it[this.groupId] = groupId
-                it[userId] = creatorId
+                // Return group info with participant IDs
+                mapOf(
+                    "id" to groupId,
+                )
             }
+            println("ALMOST DONE")
+            // Send the response
+            println("GROUP: $group")
+            call.respond(HttpStatusCode.Created, group)
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters")
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, "An unexpected error occurred")
         }
-
-        call.respond(hashMapOf(
-            "groupId" to groupId,
-            "inviteCode" to inviteCode
-        ))
     }
+
 
     get("/users/{id}/groups") {  // Removed trailing slash as it's not needed
         val userId = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -125,20 +150,20 @@ fun Route.userRoutes() {
                             .innerJoin(Users)
                             .selectAll().where { GroupMembers.groupId eq groupId }
                             .map { participantRow ->
-                                hashMapOf(
-                                    "id" to participantRow[Users.id],
-                                    "name" to participantRow[Users.name],
-                                    "profilePicture" to participantRow[Users.profilePicture]
+                                User(
+                                    id = participantRow[Users.id],
+                                    name = participantRow[Users.name],
+                                    profilePicture = participantRow[Users.profilePicture]
                                 )
                             }
 
-                        hashMapOf(
-                            "id" to groupId,
-                            "inviteCode" to groupRow[Groups.inviteCode],
-                            "name" to groupRow[Groups.name],
-                            "totalAmount" to groupRow[Groups.totalAmount],
-                            "creatorId" to groupRow[Groups.creatorId],
-                            "participants" to participants
+                        Group(
+                            id = groupId,
+                            inviteCode = groupRow[Groups.inviteCode],
+                            name = groupRow[Groups.name],
+                            totalAmount = groupRow[Groups.totalAmount],
+                            creatorId = groupRow[Groups.creatorId],
+                            participants = participants
                         )
                     }
             }
@@ -188,6 +213,54 @@ fun Route.userRoutes() {
             call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
         }
     }
+
+    get("/users/{id}/friends") {
+        val userId = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+        try {
+            val friends = transaction {
+                val friendUser = Users.alias("friend_user")  // Create alias for Users table
+
+                Contacts
+                    .join(friendUser, JoinType.INNER, onColumn = Contacts.friendId, otherColumn = friendUser[Users.id])
+                    .select(
+                        friendUser[Users.id],
+                        friendUser[Users.name],
+                        friendUser[Users.profilePicture]
+                    )
+                    .where { Contacts.userId eq userId }
+                    .map { row ->
+                        hashMapOf(
+                            "id" to row[friendUser[Users.id]],
+                            "name" to row[friendUser[Users.name]],
+                            "profilePicture" to row[friendUser[Users.profilePicture]]
+                        )
+                    }
+            }
+
+            call.respond(friends)
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
+        }
+    }
+
+    post("/users/{id}/friends") {
+        val userId = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+        val friendId = call.receive<Map<String, String>>()["friendId"]
+            ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+        try {
+            transaction {
+                Contacts.insert {
+                    it[this.userId] = userId
+                    it[this.friendId] = friendId
+                }
+            }
+            call.respond(HttpStatusCode.OK)
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
+        }
+    }
 }
 
 fun generateUniqueInviteCode(): String {
@@ -196,11 +269,9 @@ fun generateUniqueInviteCode(): String {
     var code = generateCode()
     // Keep generating until we find an unused code
     transaction {
-        while (Groups.select(Groups.inviteCode eq code).count() > 0) {
+        while (Groups.selectAll().where(Groups.inviteCode eq code).count() > 0) {
             code = generateCode()
         }
     }
     return code
 }
-
-
