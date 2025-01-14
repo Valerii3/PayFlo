@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     kotlin("plugin.serialization") version "1.9.0"
+    id("io.gitlab.arturbosch.detekt")
+}
+
+detekt {
+    config.setFrom("${rootProject.projectDir}/config/detekt.yml")
 }
 
 kotlin {

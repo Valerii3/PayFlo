@@ -24,5 +24,3 @@ class AndroidSettingsStorage(private val context: Context) : SettingsStorage {
 object AndroidApp {
     lateinit var context: Context
 }
-
-

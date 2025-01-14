@@ -19,20 +19,16 @@ class ProfileViewModel(
 
     fun loadProfile() {
         _uiState.value = ProfileUiState.Loading
-        println("ProfileViewModel: Starting to load profile")
         scope.launch {
             try {
-                val userId = settingsStorage.getString("user_id")
-                println("ProfileViewModel: Retrieved user_id from settings: $userId")
-                if (userId != null) {
-                    val user = userRepository.getUser(userId)
-                    if (user != null) {
-                        _uiState.value = ProfileUiState.Success(user)
-                    } else {
-                        _uiState.value = ProfileUiState.Error("User not found")
-                    }
-                } else {
+                val userId = settingsStorage.getString("user_id") ?: run {
                     _uiState.value = ProfileUiState.Error("User ID not found in settings")
+                    return@launch
+                }
+                userRepository.getUser(userId)?.let { user ->
+                    _uiState.value = ProfileUiState.Success(user)
+                } ?: run {
+                    _uiState.value = ProfileUiState.Error("User not found")
                 }
             } catch (e: Exception) {
                 _uiState.value = ProfileUiState.Error(e.message ?: "Unknown error")

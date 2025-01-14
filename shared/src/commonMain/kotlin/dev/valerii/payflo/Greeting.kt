@@ -3,7 +3,5 @@ package dev.valerii.payflo
 class Greeting {
     private val platform = getPlatform()
 
-    fun greet(): String {
-        return "Hello, ${platform.name}!"
-    }
+    fun greet() = "Hello, ${platform.name}!"
 }

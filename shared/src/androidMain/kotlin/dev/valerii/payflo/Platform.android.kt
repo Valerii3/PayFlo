@@ -12,8 +12,6 @@ class AndroidPlatform : Platform {
 actual fun getPlatform(): Platform = AndroidPlatform()
 
 // Then use it in getSettingsStorage
-actual fun getSettingsStorage(): SettingsStorage {
-    return AndroidSettingsStorage(AndroidApp.context)
-}
+actual fun getSettingsStorage(): SettingsStorage = AndroidSettingsStorage(AndroidApp.context)
 
 actual val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
