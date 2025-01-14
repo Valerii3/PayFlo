@@ -51,5 +51,7 @@
         <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app needs access to photos to let you select a profile picture.</string>
 </dict>
 </plist>

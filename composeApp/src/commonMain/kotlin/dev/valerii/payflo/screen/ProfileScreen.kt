@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,22 +41,29 @@ import androidx.compose.ui.input.key.Key.Companion.R
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
+import dev.valerii.payflo.ByteArrayImage
 import dev.valerii.payflo.ioDispatcher
+import dev.valerii.payflo.picker.ImagePicker
+import dev.valerii.payflo.rememberImagePicker
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.ProfileUiState
 import dev.valerii.payflo.viewmodel.ProfileViewModel
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import io.ktor.util.decodeBase64Bytes
+import io.ktor.util.decodeBase64String
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.io.encoding.Base64
 
 class ProfileScreen : Screen, KoinComponent {
     private val userRepository: UserRepository by inject()
     private val settingsStorage: SettingsStorage by inject()
-    private val viewModel by lazy { ProfileViewModel(userRepository, settingsStorage) }
+    /* private val imagePicker by inject<ImagePicker>() */
+    private val viewModel by lazy { ProfileViewModel(userRepository, settingsStorage/*, imagePicker*/) }
 
     @Composable
     override fun Content() {
@@ -64,6 +72,11 @@ class ProfileScreen : Screen, KoinComponent {
         var editedName by remember { mutableStateOf("") }
 
         //val scope = rememberCoroutineScope { ioDispatcher }
+
+        val pickImage = rememberImagePicker { imageBytes ->
+            viewModel.updateProfilePicture(imageBytes)
+        }
+
 
         LaunchedEffect(Unit) {
             withContext(ioDispatcher) {
@@ -95,21 +108,25 @@ class ProfileScreen : Screen, KoinComponent {
                         modifier = Modifier.padding(top = 32.dp)
                     ) {
                         if (state.user.profilePicture != null) {
-                            KamelImage(
-                                resource = asyncPainterResource(state.user.profilePicture!!),
+                            val imageData = state.user.profilePicture!!.decodeBase64Bytes()
+                            ByteArrayImage(
+                                imageBytes = imageData,
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier
                                     .size(120.dp)
                                     .clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
-                          /*  AsyncImage(
-                                model = state.user.profilePicture,
+                           /* println("Debug - Profile URL: data:image/jpeg;base64,${state.user.profilePicture!!.take(100)}...")
+                            KamelImage(
+                                resource = asyncPainterResource("data:image/jpeg;base64,${state.user.profilePicture!!}"),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier
                                     .size(120.dp)
                                     .clip(CircleShape),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                onLoading = { println("Debug - Image loading...") },
+                                onFailure = { error -> println("Debug - Image loading failed: $error") }
                             ) */
                         } else {
                             Surface(
@@ -130,7 +147,7 @@ class ProfileScreen : Screen, KoinComponent {
                         }
 
                         IconButton(
-                            onClick = { /* Handle image upload */ },
+                            onClick = { pickImage() },
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .offset(x = (-8).dp, y = (-8).dp)
@@ -141,7 +158,7 @@ class ProfileScreen : Screen, KoinComponent {
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Icon(
-                                    Icons.Default.Person,
+                                    Icons.Default.Add,
                                     contentDescription = "Change Profile Picture",
                                     modifier = Modifier.padding(8.dp)
                                 )
@@ -188,3 +205,4 @@ class ProfileScreen : Screen, KoinComponent {
         }
     }
 }
+

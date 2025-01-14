@@ -10,6 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import cafe.adriel.voyager.navigator.Navigator
 import dev.valerii.payflo.di.appModule
 import dev.valerii.payflo.screen.WelcomeScreen
@@ -24,6 +25,17 @@ import payflo.composeapp.generated.resources.compose_multiplatform
 private val koin = startKoin {
     modules(appModule)
 }.koin
+
+@Composable
+expect fun rememberImagePicker(onImagePicked: (ByteArray) -> Unit): () -> Unit
+
+@Composable
+expect fun ByteArrayImage(
+    imageBytes: ByteArray,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Fit
+)
 
 @Composable
 @Preview

@@ -35,6 +35,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.material3.android)
             implementation("io.ktor:ktor-client-okhttp:3.0.2")
+            implementation("androidx.compose.ui:ui-graphics:1.7.6")
         }
         commonMain.dependencies {
             implementation(compose.runtime)

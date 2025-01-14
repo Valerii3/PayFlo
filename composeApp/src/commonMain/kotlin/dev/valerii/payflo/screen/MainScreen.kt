@@ -19,9 +19,10 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.valerii.payflo.BottomNavItem
 
 class MainScreen : Screen {
-
+    private val profileScreen = ProfileScreen()
     @Composable
     override fun Content() {
+
         val navigator = LocalNavigator.currentOrThrow
         var selectedItem by remember { mutableStateOf<BottomNavItem>(BottomNavItem.Groups) }
 
@@ -42,7 +43,7 @@ class MainScreen : Screen {
             Box(modifier = Modifier.padding(padding)) {
                 when (selectedItem) {
                     BottomNavItem.Groups -> GroupsScreen(LocalNavigator.currentOrThrow)
-                    BottomNavItem.Profile -> navigator.push(ProfileScreen())
+                    BottomNavItem.Profile -> profileScreen.Content()
                 }
             }
         }
