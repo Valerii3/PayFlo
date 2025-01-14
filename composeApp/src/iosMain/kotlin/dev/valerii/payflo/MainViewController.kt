@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.ComposeUIViewController
-import dev.valerii.payflo.picker.toByteArray
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.dataWithBytes
 import platform.darwin.NSObject
@@ -97,5 +96,14 @@ class IosImagePickerDelegate : NSObject(), UIImagePickerControllerDelegateProtoc
         picker.dismissViewControllerAnimated(true) {
             this.pickerController = null
         }
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun NSData.toByteArray(): ByteArray {
+    val bytes = this.bytes?.reinterpret<ByteVar>()
+    val length = this.length.toInt()
+    return ByteArray(length) { index ->
+        bytes?.get(index) ?: 0
     }
 }
