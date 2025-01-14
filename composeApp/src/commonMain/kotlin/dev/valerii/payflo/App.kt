@@ -11,16 +11,34 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.navigator.Navigator
+import dev.valerii.payflo.di.appModule
 import dev.valerii.payflo.screen.WelcomeScreen
+import kotlinx.coroutines.CoroutineExceptionHandler
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.core.context.startKoin
 
 import payflo.composeapp.generated.resources.Res
 import payflo.composeapp.generated.resources.compose_multiplatform
 
+private val koin = startKoin {
+    modules(appModule)
+}.koin
+
 @Composable
 @Preview
 fun App() {
+    DisposableEffect(Unit) {
+        val handler = CoroutineExceptionHandler { _, throwable ->
+            println("Uncaught Kotlin coroutine exception: ${throwable.message}")
+            throwable.printStackTrace()
+        }
+
+        onDispose {
+
+        }
+    }
+
     MaterialTheme {
         Navigator(WelcomeScreen())
     }
