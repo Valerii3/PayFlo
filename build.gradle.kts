@@ -20,6 +20,7 @@ detekt {
 diktat {
     inputs {
         include("shared/**/*.kt")
+        include("server/**/*.kt")
         exclude("**/iosMain/**")
         exclude("**/**/Platform**")
     }

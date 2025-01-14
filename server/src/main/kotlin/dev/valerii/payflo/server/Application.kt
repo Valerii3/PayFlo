@@ -1,20 +1,20 @@
 package dev.valerii.payflo.server
 
-/*import dev.valerii.payflo.Greeting
-import dev.valerii.payflo.SERVER_PORT*/
 import dev.valerii.payflo.server.database.Users
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
-import org.jetbrains.exposed.sql.*
+
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.routing.routing
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun main() {
-    embeddedServer(Netty, port = 8080/*host = "0.0.0.0", module = Application::module*/) {
+    embeddedServer(Netty, port = 8080) {
         configureRouting()
         configureSerialization()
         configureDatabases()

@@ -1,14 +1,16 @@
 package dev.valerii.payflo.server
 
 import dev.valerii.payflo.server.database.Users
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.http.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.request.*
-import java.util.UUID
-import org.jetbrains.exposed.sql.*
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
 
 fun Route.userRoutes() {
     post("/users") {
@@ -28,7 +30,6 @@ fun Route.userRoutes() {
 
     get("/users/{id}") {
         val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-        println("ID in server: $id")
         val user = transaction {
             Users.selectAll()
                 .where { Users.id eq id }
@@ -38,13 +39,10 @@ fun Route.userRoutes() {
                         "name" to it[Users.name],
                         "profilePicture" to it[Users.profilePicture]
                     )
-                }.firstOrNull()
+                }
+                .firstOrNull()
         }
 
-        if (user != null) {
-            call.respond(user)
-        } else {
-            call.respond(HttpStatusCode.NotFound)
-        }
+        user?.let { call.respond(it) } ?: call.respond(HttpStatusCode.NotFound)
     }
 }
