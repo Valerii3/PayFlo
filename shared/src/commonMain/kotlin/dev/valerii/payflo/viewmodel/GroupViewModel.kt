@@ -3,14 +3,18 @@ package dev.valerii.payflo.viewmodel
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.storage.SettingsStorage
-import dev.valerii.payflo.repository.UserRepository
-import io.ktor.util.encodeBase64
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+sealed class GroupsUiState {
+    object Loading : GroupsUiState()
+    data class Success(val groups: List<Group>) : GroupsUiState()
+    data class Error(val message: String) : GroupsUiState()
+}
 
 class GroupViewModel(
     private val groupRepository: GroupRepository,
@@ -39,10 +43,4 @@ class GroupViewModel(
     companion object {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     }
-}
-
-sealed class GroupsUiState {
-    object Loading : GroupsUiState()
-    data class Success(val groups: List<Group>) : GroupsUiState()
-    data class Error(val message: String) : GroupsUiState()
 }

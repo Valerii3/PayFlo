@@ -1,7 +1,6 @@
 package dev.valerii.payflo.viewmodel
 
 import dev.valerii.payflo.model.User
-import dev.valerii.payflo.picker.ImagePicker
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import io.ktor.util.encodeBase64
@@ -11,8 +10,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 class ProfileViewModel(
     private val userRepository: UserRepository,
