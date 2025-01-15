@@ -1,7 +1,9 @@
 package dev.valerii.payflo.viewmodel
 
 import dev.valerii.payflo.model.Group
+import dev.valerii.payflo.repository.ContactRepository
 import dev.valerii.payflo.repository.GroupRepository
+import dev.valerii.payflo.storage.SettingsStorage
 import io.ktor.util.encodeBase64
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,8 +14,47 @@ import kotlinx.coroutines.launch
 
 class GroupSettingsViewModel(
     private val groupRepository: GroupRepository,
+    private val contactRepository: ContactRepository,
+    private val settingsStorage: SettingsStorage,
     private val groupId: String
 ) {
+    private val _friends = MutableStateFlow<List<String>>(emptyList())
+    val friends: StateFlow<List<String>> = _friends
+
+    private val currentUserId: String?
+        get() = settingsStorage.getString("user_id")
+
+    init {
+        loadFriends()
+    }
+
+    private fun loadFriends() {
+        scope.launch {
+            try {
+                currentUserId?.let { userId ->
+                    val userFriends = contactRepository.getFriends(userId)
+                    _friends.value = userFriends.map { it.id }
+                }
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
+    fun addFriend(friendId: String) {
+        scope.launch {
+            try {
+                currentUserId?.let { userId ->
+                    if (contactRepository.addFriend(userId, friendId)) {
+                        loadFriends() // Reload friends list after successful addition
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
     private val _uiState = MutableStateFlow<GroupSettingsUiState>(GroupSettingsUiState.Loading)
     val uiState: StateFlow<GroupSettingsUiState> = _uiState
 

@@ -51,6 +51,7 @@ import dev.valerii.payflo.ioDispatcher
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
 import dev.valerii.payflo.rememberImagePicker
+import dev.valerii.payflo.repository.ContactRepository
 import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
@@ -66,7 +67,16 @@ import org.koin.core.component.inject
 
 class GroupSettingsScreen(private val group: Group) : Screen, KoinComponent {
     private val groupRepository: GroupRepository by inject()
-    private val viewModel by lazy { GroupSettingsViewModel(groupRepository, group.id) }
+    private val contactRepository: ContactRepository by inject()
+    private val settingsStorage: SettingsStorage by inject()
+    private val viewModel by lazy {
+        GroupSettingsViewModel(
+            groupRepository,
+            contactRepository,
+            settingsStorage,
+            group.id
+        )
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -256,33 +266,56 @@ class GroupSettingsScreen(private val group: Group) : Screen, KoinComponent {
 
     @Composable
     private fun UserItem(participant: User) {
+        val currentUserId = remember { settingsStorage.getString("user_id") }
+        val friends by viewModel.friends.collectAsState()
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Participant avatar/icon
-            Surface(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-                color = MaterialTheme.colorScheme.secondaryContainer
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.padding(8.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.padding(8.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = participant.name,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = participant.name,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            if (participant.id != currentUserId) {
+                if (friends.contains(participant.id)) {
+                    Text(
+                        text = "In Friends",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    TextButton(
+                        onClick = { viewModel.addFriend(participant.id) }
+                    ) {
+                        Text("Add Friend")
+                    }
+                }
+            }
         }
     }
 }

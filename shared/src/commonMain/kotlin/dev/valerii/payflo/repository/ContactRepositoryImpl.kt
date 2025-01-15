@@ -9,6 +9,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 
 class ContactRepositoryImpl(
     private val httpClient: HttpClient
@@ -16,14 +17,11 @@ class ContactRepositoryImpl(
     override suspend fun getFriends(userId: String): List<User> =
         httpClient.get("$BASE_URL/users/$userId/friends").body()
 
-    override suspend fun addFriend(userId: String, friendId: String): Result<Unit> =
-        try {
-            httpClient.post("$BASE_URL/users/$userId/friends") {
-                contentType(ContentType.Application.Json)
-                setBody(mapOf("friendId" to friendId))
-            }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun addFriend(userId: String, friendId: String): Boolean {
+        val response = httpClient.post("$BASE_URL/users/$userId/friends") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("friendId" to friendId))
         }
+        return response.status.isSuccess()
+    }
 }
