@@ -8,7 +8,9 @@ data class Expense(
     val name: String,
     val amount: Double,
     val paidById: String, // who paid
-    val participantIds: List<String> // who needs to pay
+    val participantIds: List<String>, // who needs to pay,
+    val isBillAttached: Boolean,
+    val billImage: String?
 )
 
 @Serializable
@@ -17,6 +19,8 @@ data class CreateExpenseRequest(
     val name: String,
     val amount: Double,
     val creatorId: String,
-    val participantIds: List<String>
+    val participantIds: List<String>,
+    val isBillAttached: Boolean,
+    val billImage: String?
 )
 

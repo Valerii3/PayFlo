@@ -19,7 +19,9 @@ interface GroupRepository {
         name: String,
         amount: Double,
         creatorId: String,
-        participantIds: List<String>
+        participantIds: List<String>,
+        isBillAttached: Boolean,
+        billImage: String?
     ): Result<String>
     suspend fun getGroupExpenses(groupId: String): Result<List<Expense>>
 }

@@ -95,14 +95,18 @@ class GroupRepositoryImpl(
         name: String,
         amount: Double,
         creatorId: String,
-        participantIds: List<String>
+        participantIds: List<String>,
+        isBillAttached: Boolean,
+        billImage: String?
     ): Result<String> = try {
         val request = CreateExpenseRequest(
             groupId = groupId,
             name = name,
             amount = amount,
             creatorId = creatorId,
-            participantIds = participantIds
+            participantIds = participantIds,
+            isBillAttached = isBillAttached,
+            billImage = billImage
         )
 
         val response = httpClient.post("$BASE_URL/expenses") {

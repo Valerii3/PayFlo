@@ -17,7 +17,7 @@ class AddExpenseViewModel(
     private val _uiState = MutableStateFlow<AddExpenseUiState>(AddExpenseUiState.Input)
     val uiState: StateFlow<AddExpenseUiState> = _uiState
 
-    fun addExpense(name: String, amount: Double, participantIds: List<String>) {
+    fun addExpense(name: String, amount: Double, participantIds: List<String>, billImage: String?) {
         scope.launch {
             try {
                 _uiState.value = AddExpenseUiState.Loading
@@ -26,7 +26,9 @@ class AddExpenseViewModel(
                     name = name,
                     amount = amount,
                     creatorId = group.creatorId,
-                    participantIds = participantIds
+                    participantIds = participantIds,
+                    isBillAttached = billImage != null,
+                    billImage = billImage
                 )
 
                 result.fold(

@@ -5,12 +5,14 @@ import dev.valerii.payflo.model.CreateGroupRequest
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
+import dev.valerii.payflo.server.database.BillItems
 import dev.valerii.payflo.server.database.Contacts
 import dev.valerii.payflo.server.database.ExpenseParticipants
 import dev.valerii.payflo.server.database.Expenses
 import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.GroupMembers
 import dev.valerii.payflo.server.database.Users
+import dev.valerii.payflo.server.llm.ChatGPT
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -18,6 +20,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.alias
@@ -105,6 +110,7 @@ fun Route.userRoutes() {
                     it[this.inviteCode] = inviteCode
                     it[totalAmount] = request.totalAmount
                     it[creatorId] = request.creatorId
+
                 }
 
                 // Add all members (including the creator) to the GroupMembers table
@@ -399,15 +405,25 @@ fun Route.userRoutes() {
                     it[name] = request.name
                     it[amount] = request.amount
                     it[creatorId] = request.creatorId
+                    it[isBillAttached] = request.isBillAttached
+                    it[billPhoto] = request.billImage
                 }
 
                 // Add participants and their shares
-                request.participantIds.forEach { participantId ->
-                    ExpenseParticipants.insert {
-                        it[this.expenseId] = expenseId
-                        it[userId] = participantId
-                        it[this.share] = share
+                if (!request.isBillAttached) {
+                    request.participantIds.forEach { participantId ->
+                        ExpenseParticipants.insert {
+                            it[this.expenseId] = expenseId
+                            it[userId] = participantId
+                            it[this.share] = share
+                        }
                     }
+                }
+            }
+
+            if (request.isBillAttached && request.billImage != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    processBillWithLLM(expenseId, request.billImage!!)
                 }
             }
 
@@ -439,7 +455,9 @@ fun Route.userRoutes() {
                             name = row[Expenses.name],
                             amount = row[Expenses.amount],
                             paidById = row[Expenses.creatorId],
-                            participantIds = participants
+                            participantIds = participants,
+                            isBillAttached = row[Expenses.isBillAttached],
+                            billImage = row[Expenses.billPhoto]
                         )
                     }
 
@@ -467,4 +485,33 @@ fun generateUniqueInviteCode(): String {
         }
     }
     return code
+}
+
+suspend fun processBillWithLLM(expenseId: String, billImage: String) {
+    val chatGPT = ChatGPT()
+    try {
+        // billImage is already base64 encoded in your case
+        val billData = chatGPT.processBillImage(billImage)
+
+        transaction {
+            // Update the expense total amount if needed
+            Expenses.update({ Expenses.id eq expenseId }) {
+                it[amount] = billData.total
+            }
+
+            // Store the individual items
+            billData.items.forEach { item ->
+                BillItems.insert {
+                    it[id] = UUID.randomUUID().toString()
+                    it[this.expenseId] = expenseId
+                    it[name] = item.name
+                    it[price] = item.price
+                    it[quantity] = item.quantity
+                    it[totalPrice] = item.totalPrice
+                }
+            }
+        }
+    } catch (e: Exception) {
+        println("Error processing bill for expense $expenseId: ${e.message}")
+    }
 }

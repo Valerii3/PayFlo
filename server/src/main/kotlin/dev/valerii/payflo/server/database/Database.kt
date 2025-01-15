@@ -37,6 +37,8 @@ object Expenses : Table() {
     val name = varchar("name", 255)
     val amount = double("amount")
     val creatorId = varchar("creator_id", 128).references(Users.id)
+    val isBillAttached = bool("is_bill_attached").default(false)
+    val billPhoto = text("bill_photo").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -46,3 +48,14 @@ object ExpenseParticipants : Table() {
     val share = double("share")
     override val primaryKey = PrimaryKey(expenseId, userId)
 }
+
+object BillItems : Table() {
+    val id = varchar("id", 128)
+    val expenseId = varchar("expense_id", 128).references(Expenses.id)
+    val name = varchar("name", 255)
+    val price = double("price")         // Price per item
+    val quantity = integer("quantity")  // How many of this item
+    val totalPrice = double("total_price")  // Price * quantity
+    override val primaryKey = PrimaryKey(id)
+}
+

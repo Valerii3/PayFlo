@@ -1,38 +1,27 @@
 package dev.valerii.payflo.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import dev.valerii.payflo.elements.CreateGroupDialog
 import dev.valerii.payflo.model.Group
-import dev.valerii.payflo.model.User
-import dev.valerii.payflo.repository.ContactRepository
+import dev.valerii.payflo.rememberImagePicker
 import dev.valerii.payflo.repository.GroupRepository
-import dev.valerii.payflo.repository.UserRepository
-import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.AddExpenseUiState
 import dev.valerii.payflo.viewmodel.AddExpenseViewModel
-import dev.valerii.payflo.viewmodel.CreateRoomUiState
-import dev.valerii.payflo.viewmodel.CreateRoomViewModel
-import dev.valerii.payflo.viewmodel.GroupCreationState
-import org.koin.core.Koin
+import io.ktor.util.encodeBase64
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -49,6 +38,11 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
         var expenseName by remember { mutableStateOf("") }
         var amount by remember { mutableStateOf("") }
         var selectedParticipants by remember { mutableStateOf(setOf<String>()) }
+        var billImageBase64 by remember { mutableStateOf<String?>(null) }
+
+        val pickImage = rememberImagePicker { imageBytes ->
+            billImageBase64 = imageBytes.encodeBase64()
+        }
 
         Scaffold(
             topBar = {
@@ -77,6 +71,7 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Manual amount input
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -84,6 +79,38 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Divider(modifier = Modifier.weight(1f))
+                    Text(
+                        "  OR  ",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Divider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = { pickImage() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ThumbUp,
+                        contentDescription = "Attach Bill",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (billImageBase64 != null) "Bill Attached" else "Attach Bill")
+                }
+
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -149,7 +176,8 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
                             viewModel.addExpense(
                                 name = expenseName,
                                 amount = amountValue,
-                                participantIds = selectedParticipants.toList()
+                                participantIds = selectedParticipants.toList(),
+                                billImage = billImageBase64
                             )
                         }
                     },
