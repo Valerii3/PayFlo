@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class BillData(
     val total: Double,
-    val items: List<BillItem>,
+    val items: List<GPTBillItem>,
 )
 
 

@@ -53,7 +53,7 @@ class CreateRoomViewModel(
         }
     }
 
-    fun createGroup(name: String, memberIds: Set<String>) {
+    fun createGroup(name: String, selectedFriends: Set<String>) {
         _groupCreationState.value = GroupCreationState.Loading
         scope.launch {
             try {
@@ -61,21 +61,21 @@ class CreateRoomViewModel(
                     _groupCreationState.value = GroupCreationState.Error("User ID not found")
                     return@launch
                 }
-
-                val finalMemberIds = if (memberIds.isEmpty()) {
+                val memberIds = selectedFriends.toList()
+                /*val finalMemberIds = if (memberIds.isEmpty()) {
                     listOf(userId)  // Just the creator
                 } else {
                     (memberIds + userId).toList()
-                }
+                } */
 
-                val group = groupRepository.createGroup(
+                val createGroup = groupRepository.createGroup(
                     name = name,
                     photo = null,
                     creatorId = userId,
-                    memberIds = finalMemberIds
+                    memberIds = memberIds
                 )
 
-                _groupCreationState.value = GroupCreationState.Success(group)
+                _groupCreationState.value = GroupCreationState.Success(createGroup)
             } catch (e: Exception) {
                 println("Network error: ${e.message}")
                 _groupCreationState.value =

@@ -53,7 +53,10 @@ class CreateRoomScreen : Screen, KoinComponent {
         LaunchedEffect(groupCreationState) {
             when (groupCreationState) {
                 is GroupCreationState.Success -> {
-                    navigator.push(MainScreen())
+                    val createdGroup = (groupCreationState as GroupCreationState.Success).group
+                    navigator.pop()
+                    navigator.pop()
+                    navigator.push(GroupDetailScreen(createdGroup))
                 }
                 is GroupCreationState.Error -> {
                     // Handle error

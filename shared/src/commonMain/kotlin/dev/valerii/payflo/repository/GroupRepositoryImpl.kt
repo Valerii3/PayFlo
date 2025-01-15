@@ -41,7 +41,11 @@ class GroupRepositoryImpl(
             setBody(request)
         }
 
-        return response.body()
+        val creationResponse = response.body<Map<String, String>>()
+        val groupId = creationResponse["id"] ?: throw Exception("Group ID not returned")
+
+        // Then fetch and return the complete group
+        return getGroup(groupId) ?: throw Exception("Could not fetch created group")
     }
 
     override suspend fun getGroupsForUser(userId: String): List<Group> =

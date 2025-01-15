@@ -12,3 +12,12 @@ data class BillItem(
     val expenseId: String,// Price * quantity
     val assignedToUserIds: List<String> = emptyList()
 )
+
+
+@Serializable
+data class GPTBillItem(
+    val name: String,
+    val price: Double,
+    val quantity: Int = 1,  // Added quantity field
+    val totalPrice: Double,
+)
