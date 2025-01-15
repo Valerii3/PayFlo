@@ -27,4 +27,9 @@ interface GroupRepository {
     suspend fun getGroupExpenses(groupId: String): Result<List<Expense>>
     suspend fun getBillItemsForExpense(expenseId: String): List<BillItem>
     suspend fun toggleBillItemAssignment(itemId: String, userId: String)
+    suspend fun assignItemsByDescription(
+        billItems: List<BillItem>,
+        orderDescription: String,
+        userId: String
+    )
 }

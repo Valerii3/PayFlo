@@ -39,6 +39,7 @@ import dev.valerii.payflo.viewmodel.CreateRoomUiState
 import dev.valerii.payflo.viewmodel.CreateRoomViewModel
 import dev.valerii.payflo.viewmodel.GroupCreationState
 import io.ktor.util.decodeBase64Bytes
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
@@ -59,6 +60,8 @@ class ExpenseDetailScreen(
         val navigator = LocalNavigator.currentOrThrow
         var billItems by remember { mutableStateOf<List<BillItem>>(emptyList()) }
         var currentUserId by remember { mutableStateOf<String?>(null) }
+        var orderText by remember { mutableStateOf("") }
+        var isAnalyzing by remember { mutableStateOf(false) }
 
         LaunchedEffect(expense.id) {
             currentUserId = userRepository.getSavedCredentials()!!.userId
@@ -124,6 +127,73 @@ class ExpenseDetailScreen(
 
                 // Bill Items section (if available)
                 if (expense.isBillAttached && billItems.isNotEmpty()) {
+
+                    // type in
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "What did you order?",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = orderText,
+                                    onValueChange = { orderText = it },
+                                    modifier = Modifier.weight(1f),
+                                    placeholder = { Text("e.g., I had a pizza and a coke") },
+                                    singleLine = true
+                                )
+                                Button(
+                                    onClick = {
+                                        isAnalyzing = true
+                                        MainScope().launch {
+                                            try {
+                                                groupRepository.assignItemsByDescription(
+                                                    orderDescription = orderText,
+                                                    billItems = billItems,
+                                                    userId = currentUserId!!
+                                                )
+                                                billItems = groupRepository.getBillItemsForExpense(expense.id)
+                                                orderText = ""
+                                            } catch (e: Exception) {
+                                                println("Error: ${e.message}")
+                                            } finally {
+                                                isAnalyzing = false
+                                            }
+                                        }
+                                    },
+                                    enabled = orderText.isNotBlank() && !isAnalyzing
+                                ) {
+                                    if (isAnalyzing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    } else {
+                                        Text("Analyze")
+                                    }
+                                }
+                            }
+
+                            if (isAnalyzing) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+
                     item {
                         Text(
                             "Bill Items",

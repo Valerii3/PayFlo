@@ -5,6 +5,7 @@ import dev.valerii.payflo.model.CreateExpenseRequest
 import dev.valerii.payflo.model.CreateGroupRequest
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
+import dev.valerii.payflo.model.OrderAnalysisRequest
 import dev.valerii.payflo.model.User
 import dev.valerii.payflo.server.database.BillItemAssignments
 import dev.valerii.payflo.server.database.BillItems
@@ -548,6 +549,23 @@ fun Route.userRoutes() {
 
         call.respond(HttpStatusCode.OK)
     }
+
+
+
+
+    post("/analyze-order") {
+        println("We are in post method yep yep")
+        val chatGPT = ChatGPT()
+        val request = call.receive<OrderAnalysisRequest>()
+        println("We are in post method yep yep2")
+
+        val matchedItemIds = chatGPT.analyzeOrder(
+            orderDescription = request.orderDescription,
+            billItems = request.billItems
+        )
+        call.respond(matchedItemIds)
+    }
+
 }
 
 fun generateUniqueInviteCode(): String {
@@ -593,6 +611,4 @@ suspend fun processBillWithLLM(expenseId: String, billImage: String) {
     } catch (e: Exception) {
         println("Error processing bill for expense $expenseId: ${e.message}")
     }
-
-
 }

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
+    kotlin("plugin.serialization") version "1.9.0"
     application
 }
 
@@ -26,4 +27,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host:3.0.2")
     testImplementation(libs.kotlin.test.junit)
     implementation("org.xerial:sqlite-jdbc:3.47.1.0")
+    implementation("com.aallam.openai:openai-client:3.8.2")
+    implementation("io.ktor:ktor-client-okhttp:2.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }

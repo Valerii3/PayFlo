@@ -5,6 +5,7 @@ import dev.valerii.payflo.model.CreateExpenseRequest
 import dev.valerii.payflo.model.CreateGroupRequest
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
+import dev.valerii.payflo.model.OrderAnalysisRequest
 import dev.valerii.payflo.model.UpdateGroupRequest
 import dev.valerii.payflo.repository.RepositoryConstants.BASE_URL
 import io.ktor.client.HttpClient
@@ -144,6 +145,33 @@ class GroupRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(mapOf("userId" to userId))
         }
+    }
+
+    override suspend fun assignItemsByDescription(
+        billItems: List<BillItem>,
+        orderDescription: String,
+        userId: String
+    ) {
+        try {
+            val request = OrderAnalysisRequest(
+                orderDescription = orderDescription,
+                billItems = billItems
+            )
+            print("HELLO")
+            val matchedItemIds = httpClient.post("$BASE_URL/analyze-order") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }.body<List<String>>()
+            print("HELLO2")
+            // Then toggle assignments for each matched item
+            matchedItemIds.forEach { itemId ->
+                toggleBillItemAssignment(itemId, userId)
+            }
+        } catch (e: Exception) {
+            throw e
+        }
+
+
     }
 
 }
