@@ -111,6 +111,7 @@ class GroupsScreen : Screen, KoinComponent {
                             items(filteredGroups) { group ->
                                 GroupCard(group = group) {
                                     // Navigate to group details
+                                    navigator.push(GroupDetailScreen(group))
                                 }
                             }
                         }
