@@ -21,9 +21,22 @@ class AddExpenseViewModel(
         scope.launch {
             try {
                 _uiState.value = AddExpenseUiState.Loading
-                val share = amount / participantIds.size
-                // Add your expense creation logic here
-                _uiState.value = AddExpenseUiState.Success
+                val result = groupRepository.addExpense(
+                    groupId = group.id,
+                    name = name,
+                    amount = amount,
+                    creatorId = group.creatorId,
+                    participantIds = participantIds
+                )
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.value = AddExpenseUiState.Success
+                    },
+                    onFailure = {
+                        _uiState.value = AddExpenseUiState.Error(it.message ?: "Unknown error")
+                    }
+                )
             } catch (e: Exception) {
                 _uiState.value = AddExpenseUiState.Error(e.message ?: "Unknown error")
             }

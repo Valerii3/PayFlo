@@ -10,7 +10,8 @@ data class Group(
     val photo: String? = null,
     val totalAmount: Double,
     val creatorId: String,
-    val participants: List<User>
+    val participants: List<User>,
+    val expenses: List<Expense> = emptyList()
 )
 
 @Serializable

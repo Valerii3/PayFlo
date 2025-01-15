@@ -1,6 +1,8 @@
 package dev.valerii.payflo.server
 
 import dev.valerii.payflo.server.database.Contacts
+import dev.valerii.payflo.server.database.ExpenseParticipants
+import dev.valerii.payflo.server.database.Expenses
 import dev.valerii.payflo.server.database.GroupMembers
 import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.Users
@@ -54,5 +56,7 @@ fun Application.configureDatabases() {
         SchemaUtils.create(Groups)
         SchemaUtils.create(GroupMembers)
         SchemaUtils.create(Contacts)
+        SchemaUtils.create(Expenses)
+        SchemaUtils.create(ExpenseParticipants)
     }
 }

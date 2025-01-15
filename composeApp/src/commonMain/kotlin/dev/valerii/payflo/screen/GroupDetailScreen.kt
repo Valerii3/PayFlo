@@ -1,8 +1,12 @@
 package dev.valerii.payflo.screen
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -35,16 +39,27 @@ import dev.valerii.payflo.viewmodel.GroupDetailViewModel
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import androidx.compose.foundation.lazy.items
+import dev.valerii.payflo.repository.UserRepository
+import dev.valerii.payflo.storage.SettingsStorage
 
 class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
     private val groupRepository: GroupRepository by inject()
-    private val viewModel by lazy { GroupDetailViewModel(groupRepository, group.id) }
+    private val userRepository: UserRepository by inject()
+    private val viewModel by lazy {
+        GroupDetailViewModel(
+            groupRepository,
+            userRepository,
+            group.id
+        )
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val uiState by viewModel.uiState.collectAsState()
+
 
         LaunchedEffect(Unit) {
             withContext(ioDispatcher) {
@@ -72,6 +87,7 @@ class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
                             }
                         )
                     }
+
                     else -> {
                         TopAppBar(
                             title = { Text("Loading...") },
@@ -103,6 +119,7 @@ class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }
+
                     is GroupDetailUiState.Error -> {
                         Text(
                             text = state.message,
@@ -110,9 +127,38 @@ class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
                             modifier = Modifier.padding(16.dp)
                         )
                     }
+
                     is GroupDetailUiState.Success -> {
-                        // Your group content here using state.group
-                        Text("Group Details Content", modifier = Modifier.padding(16.dp))
+                        LazyColumn {
+                            items(state.group.expenses) { expense ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(expense.name)
+
+                                    val currentUserId = state.userId
+                                    val amount = if (expense.paidById == currentUserId) {
+                                        "+${expense.amount}"  // You paid
+                                    } else if (expense.participantIds.contains(currentUserId)) {
+                                        "-${expense.amount / expense.participantIds.size}"  // You owe
+                                    } else {
+                                        "0.0"  // Not involved
+                                    }
+
+                                    Text(
+                                        text = amount,
+                                        color = if (amount.startsWith("+"))
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -1,9 +1,13 @@
 package dev.valerii.payflo.server
 
+import dev.valerii.payflo.model.CreateExpenseRequest
 import dev.valerii.payflo.model.CreateGroupRequest
+import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
 import dev.valerii.payflo.server.database.Contacts
+import dev.valerii.payflo.server.database.ExpenseParticipants
+import dev.valerii.payflo.server.database.Expenses
 import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.GroupMembers
 import dev.valerii.payflo.server.database.Users
@@ -379,6 +383,76 @@ fun Route.userRoutes() {
         updatedGroup?.let {
             call.respond(it)
         } ?: call.respond(HttpStatusCode.NotFound)
+    }
+
+    post("/expenses") {
+        val request = call.receive<CreateExpenseRequest>()
+        try {
+            val expenseId = UUID.randomUUID().toString()
+            val share = request.amount / request.participantIds.size
+
+            transaction {
+                // Create the expense
+                Expenses.insert {
+                    it[id] = expenseId
+                    it[groupId] = request.groupId
+                    it[name] = request.name
+                    it[amount] = request.amount
+                    it[creatorId] = request.creatorId
+                }
+
+                // Add participants and their shares
+                request.participantIds.forEach { participantId ->
+                    ExpenseParticipants.insert {
+                        it[this.expenseId] = expenseId
+                        it[userId] = participantId
+                        it[this.share] = share
+                    }
+                }
+            }
+
+            call.respond(HttpStatusCode.Created, mapOf("expenseId" to expenseId))
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
+        }
+    }
+
+    get("/groups/{groupId}/expenses") {
+        val groupId = call.parameters["groupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+        try {
+            val expenses = transaction {
+                val expensesList = Expenses
+                    .selectAll()
+                    .where { Expenses.groupId eq groupId }
+                    .map { row ->
+                        val expenseId = row[Expenses.id]
+
+                        // Get participants for this expense
+                        val participants = ExpenseParticipants
+                            .selectAll()
+                            .where { ExpenseParticipants.expenseId eq expenseId }
+                            .map { it[ExpenseParticipants.userId] }
+
+                        Expense(
+                            id = expenseId,
+                            name = row[Expenses.name],
+                            amount = row[Expenses.amount],
+                            paidById = row[Expenses.creatorId],
+                            participantIds = participants
+                        )
+                    }
+
+                expensesList
+            }
+
+            call.respond(expenses)
+        } catch (e: Exception) {
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to (e.message ?: "Unknown error"))
+            )
+        }
     }
 }
 

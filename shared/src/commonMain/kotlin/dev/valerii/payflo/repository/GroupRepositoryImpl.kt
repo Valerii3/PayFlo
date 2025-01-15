@@ -1,6 +1,8 @@
 package dev.valerii.payflo.repository
 
+import dev.valerii.payflo.model.CreateExpenseRequest
 import dev.valerii.payflo.model.CreateGroupRequest
+import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.UpdateGroupRequest
 import dev.valerii.payflo.repository.RepositoryConstants.BASE_URL
@@ -86,6 +88,47 @@ class GroupRepositoryImpl(
         val group = response.body<Group>()
         println("Deserialized group name: ${group.name}") // Debug log
         return group
+    }
+
+    override suspend fun addExpense(
+        groupId: String,
+        name: String,
+        amount: Double,
+        creatorId: String,
+        participantIds: List<String>
+    ): Result<String> = try {
+        val request = CreateExpenseRequest(
+            groupId = groupId,
+            name = name,
+            amount = amount,
+            creatorId = creatorId,
+            participantIds = participantIds
+        )
+
+        val response = httpClient.post("$BASE_URL/expenses") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        if (response.status.isSuccess()) {
+            val result = response.body<Map<String, String>>()
+            Result.success(result["expenseId"]!!)
+        } else {
+            Result.failure(Exception("Failed to create expense"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getGroupExpenses(groupId: String): Result<List<Expense>> = try {
+        val response = httpClient.get("$BASE_URL/groups/$groupId/expenses")
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to fetch expenses"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 
 }
