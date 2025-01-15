@@ -86,7 +86,7 @@ class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
             },
             floatingActionButton = {
                 FloatingActionButton(
-                    onClick = { /* Navigate to Add Bill screen */ }
+                    onClick = { navigator.push(AddExpenseScreen(group)) }
                 ) {
                     Icon(Icons.Default.Add, "Add Bill")
                 }

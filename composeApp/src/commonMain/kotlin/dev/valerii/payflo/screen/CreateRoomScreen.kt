@@ -67,7 +67,6 @@ class CreateRoomScreen : Screen, KoinComponent {
                 selectedFriendIds = selectedFriends,
                 onDismiss = { showCreateGroupDialog = false },
                 onConfirm = { groupName ->
-                    // TODO: Handle group creation
                     viewModel.createGroup(groupName, selectedFriends)
                    // navigator.push(MainScreen())
                 }

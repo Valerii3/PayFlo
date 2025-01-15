@@ -9,7 +9,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-// First, create GroupDetailViewModel:
 class GroupDetailViewModel(
     private val groupRepository: GroupRepository,
     private val groupId: String

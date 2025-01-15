@@ -30,3 +30,19 @@ object Contacts : Table() {
     val friendId = varchar("friend_id", 128).references(Users.id)
     override val primaryKey = PrimaryKey(userId, friendId)
 }
+
+object Expenses : Table() {
+    val id = varchar("id", 128)
+    val groupId = varchar("group_id", 128).references(Groups.id)
+    val name = varchar("name", 255)
+    val amount = double("amount")
+    val creatorId = varchar("creator_id", 128).references(Users.id)
+    override val primaryKey = PrimaryKey(id)
+}
+
+object ExpenseParticipants : Table() {
+    val expenseId = varchar("expense_id", 128).references(Expenses.id)
+    val userId = varchar("user_id", 128).references(Users.id)
+    val share = double("share")
+    override val primaryKey = PrimaryKey(expenseId, userId)
+}

@@ -318,4 +318,6 @@ class GroupSettingsScreen(private val group: Group) : Screen, KoinComponent {
             }
         }
     }
+
 }
+
