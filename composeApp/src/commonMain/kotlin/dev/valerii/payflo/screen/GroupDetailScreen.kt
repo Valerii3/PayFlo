@@ -1,10 +1,14 @@
 package dev.valerii.payflo.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -40,6 +44,10 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import dev.valerii.payflo.model.Expense
+import dev.valerii.payflo.model.User
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 
@@ -129,39 +137,100 @@ class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
                     }
 
                     is GroupDetailUiState.Success -> {
-                        LazyColumn {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             items(state.group.expenses) { expense ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(expense.name)
-
-                                    val currentUserId = state.userId
-                                    val amount = if (expense.paidById == currentUserId) {
-                                        "+${expense.amount}"  // You paid
-                                    } else if (expense.participantIds.contains(currentUserId)) {
-                                        "-${expense.amount / expense.participantIds.size}"  // You owe
-                                    } else {
-                                        "0.0"  // Not involved
+                                ExpenseCard(
+                                    expense = expense,
+                                    currentUserId = state.userId,
+                                    participants = state.group.participants,
+                                    onClick = {
+                                        // Show expense details dialog or navigate to details screen
+                                        navigator.push(
+                                            ExpenseDetailScreen(
+                                                expense = expense,
+                                                participants = state.group.participants
+                                            )
+                                        )
                                     }
-
-                                    Text(
-                                        text = amount,
-                                        color = if (amount.startsWith("+"))
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.error
-                                    )
-                                }
+                                )
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ExpenseCard(
+    expense: Expense,
+    currentUserId: String,
+    participants: List<User>,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = expense.name,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                val amount = if (expense.paidById == currentUserId) {
+                    "+₴${expense.amount}"
+                } else if (expense.participantIds.contains(currentUserId)) {
+                    "-₴${expense.amount / expense.participantIds.size}"
+                } else {
+                    "₴0.0"
+                }
+
+                Text(
+                    text = amount,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (amount.startsWith("+"))
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Show who paid
+            val paidByUser = participants.find { it.id == expense.paidById }
+            Text(
+                text = "Paid by ${paidByUser?.name ?: "Unknown"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Show share amount
+            val shareAmount = expense.amount / expense.participantIds.size
+            Text(
+                text = "${expense.participantIds.size} participants • ₴$shareAmount each",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

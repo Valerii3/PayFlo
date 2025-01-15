@@ -174,3 +174,4 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
         }
     }
 }
+
