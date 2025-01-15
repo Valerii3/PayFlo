@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +19,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.rememberImagePicker
 import dev.valerii.payflo.repository.GroupRepository
+import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.AddExpenseUiState
 import dev.valerii.payflo.viewmodel.AddExpenseViewModel
 import io.ktor.util.encodeBase64
@@ -27,7 +28,8 @@ import org.koin.core.component.inject
 
 class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
     private val groupRepository: GroupRepository by inject()
-    private val viewModel by lazy { AddExpenseViewModel(groupRepository, group) }
+    private val settingsStorage: SettingsStorage by inject()
+    private val viewModel by lazy { AddExpenseViewModel(groupRepository, settingsStorage, group) }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -50,7 +52,7 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
                     title = { Text("Add Expense") },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.Default.ArrowBack, "Go back")
+                            Icon(Icons.AutoMirrored.Default.ArrowBack, "Go back")
                         }
                     }
                 )
@@ -87,13 +89,13 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Divider(modifier = Modifier.weight(1f))
+                    HorizontalDivider(modifier = Modifier.weight(1f))
                     Text(
                         "  OR  ",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Divider(modifier = Modifier.weight(1f))
+                    HorizontalDivider(modifier = Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

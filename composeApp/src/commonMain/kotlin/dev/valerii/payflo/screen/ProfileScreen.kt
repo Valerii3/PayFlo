@@ -58,8 +58,6 @@ class ProfileScreen : Screen, KoinComponent {
         var isEditingName by remember { mutableStateOf(false) }
         var editedName by remember { mutableStateOf("") }
 
-        //val scope = rememberCoroutineScope { ioDispatcher }
-
         val pickImage = rememberImagePicker { imageBytes ->
             viewModel.updateProfilePicture(imageBytes)
         }

@@ -1,8 +1,8 @@
 package dev.valerii.payflo.viewmodel
 
 import dev.valerii.payflo.model.Group
-import dev.valerii.payflo.model.User
 import dev.valerii.payflo.repository.GroupRepository
+import dev.valerii.payflo.storage.SettingsStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,10 +12,14 @@ import kotlinx.coroutines.launch
 
 class AddExpenseViewModel(
     private val groupRepository: GroupRepository,
+    private val settingsStorage: SettingsStorage,
     private val group: Group
 ) {
     private val _uiState = MutableStateFlow<AddExpenseUiState>(AddExpenseUiState.Input)
     val uiState: StateFlow<AddExpenseUiState> = _uiState
+
+    private val currentUserId: String
+        get() = settingsStorage.getString("user_id")!!
 
     fun addExpense(name: String, amount: Double, participantIds: List<String>, billImage: String?) {
         scope.launch {
@@ -25,7 +29,7 @@ class AddExpenseViewModel(
                     groupId = group.id,
                     name = name,
                     amount = amount,
-                    creatorId = group.creatorId,
+                    creatorId = currentUserId,
                     participantIds = participantIds,
                     isBillAttached = billImage != null,
                     billImage = billImage
