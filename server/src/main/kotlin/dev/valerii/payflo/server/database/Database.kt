@@ -59,3 +59,9 @@ object BillItems : Table() {
     override val primaryKey = PrimaryKey(id)
 }
 
+object BillItemAssignments : Table() {
+    val billItemId = varchar("bill_item_id", 128).references(BillItems.id)
+    val userId = varchar("user_id", 128).references(Users.id)
+    override val primaryKey = PrimaryKey(billItemId, userId)
+}
+

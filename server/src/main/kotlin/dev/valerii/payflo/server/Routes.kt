@@ -1,10 +1,12 @@
 package dev.valerii.payflo.server
 
+import dev.valerii.payflo.model.BillItem
 import dev.valerii.payflo.model.CreateExpenseRequest
 import dev.valerii.payflo.model.CreateGroupRequest
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
+import dev.valerii.payflo.server.database.BillItemAssignments
 import dev.valerii.payflo.server.database.BillItems
 import dev.valerii.payflo.server.database.Contacts
 import dev.valerii.payflo.server.database.ExpenseParticipants
@@ -28,6 +30,7 @@ import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.alias
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -481,6 +484,70 @@ fun Route.userRoutes() {
             )
         }
     }
+
+    get("/expenses/{expenseId}/items") {
+        val expenseId = call.parameters["expenseId"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+        try {
+            val items = transaction {
+                BillItems
+                    .selectAll()
+                    .where { BillItems.expenseId eq expenseId }
+                    .map { row ->
+                        val itemId = row[BillItems.id]
+                        // Get assigned users for this item
+                        val assignedUsers = BillItemAssignments
+                            .selectAll()
+                            .where { BillItemAssignments.billItemId eq itemId }
+                            .map { it[BillItemAssignments.userId] }
+
+                        BillItem(
+                            id = itemId,
+                            expenseId = row[BillItems.expenseId],
+                            name = row[BillItems.name],
+                            price = row[BillItems.price],
+                            quantity = row[BillItems.quantity],
+                            totalPrice = row[BillItems.totalPrice],
+                            assignedToUserIds = assignedUsers
+                        )
+                    }
+            }
+            call.respond(items)
+        } catch (e: Exception) {
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to (e.message ?: "Unknown error"))
+            )
+        }
+    }
+
+    put("/bill-items/{itemId}/assignments/toggle") {
+        val itemId = call.parameters["itemId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+        val userId = call.receive<Map<String, String>>()["userId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+
+        transaction {
+            // Check if assignment exists
+            val existingAssignment = BillItemAssignments
+                .selectAll().where { (BillItemAssignments.billItemId eq itemId) and (BillItemAssignments.userId eq userId) }
+                .firstOrNull()
+
+            if (existingAssignment == null) {
+                // Add new assignment
+                BillItemAssignments.insert {
+                    it[this.billItemId] = itemId
+                    it[this.userId] = userId
+                }
+            } else {
+                // Remove existing assignment
+                BillItemAssignments.deleteWhere {
+                    (BillItemAssignments.billItemId eq itemId) and (BillItemAssignments.userId eq userId)
+                }
+            }
+        }
+
+        call.respond(HttpStatusCode.OK)
+    }
 }
 
 fun generateUniqueInviteCode(): String {
@@ -526,4 +593,6 @@ suspend fun processBillWithLLM(expenseId: String, billImage: String) {
     } catch (e: Exception) {
         println("Error processing bill for expense $expenseId: ${e.message}")
     }
+
+
 }

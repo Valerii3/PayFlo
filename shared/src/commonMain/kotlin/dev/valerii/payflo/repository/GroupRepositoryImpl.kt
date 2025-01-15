@@ -1,5 +1,6 @@
 package dev.valerii.payflo.repository
 
+import dev.valerii.payflo.model.BillItem
 import dev.valerii.payflo.model.CreateExpenseRequest
 import dev.valerii.payflo.model.CreateGroupRequest
 import dev.valerii.payflo.model.Expense
@@ -133,6 +134,16 @@ class GroupRepositoryImpl(
         }
     } catch (e: Exception) {
         Result.failure(e)
+    }
+
+    override suspend fun getBillItemsForExpense(expenseId: String): List<BillItem> =
+        httpClient.get("$BASE_URL/expenses/$expenseId/items").body()
+
+    override suspend fun toggleBillItemAssignment(itemId: String, userId: String) {
+        httpClient.put("$BASE_URL/bill-items/$itemId/assignments/toggle") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("userId" to userId))
+        }
     }
 
 }

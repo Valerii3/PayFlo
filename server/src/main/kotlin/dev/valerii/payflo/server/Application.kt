@@ -1,6 +1,7 @@
 package dev.valerii.payflo.server
 
 import dev.valerii.payflo.model.BillItem
+import dev.valerii.payflo.server.database.BillItemAssignments
 import dev.valerii.payflo.server.database.BillItems
 import dev.valerii.payflo.server.database.Contacts
 import dev.valerii.payflo.server.database.ExpenseParticipants
@@ -61,5 +62,6 @@ fun Application.configureDatabases() {
         SchemaUtils.create(Expenses)
         SchemaUtils.create(ExpenseParticipants)
         SchemaUtils.create(BillItems)
+        SchemaUtils.create(BillItemAssignments)
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -13,14 +14,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.valerii.payflo.ByteArrayImage
 import dev.valerii.payflo.elements.CreateGroupDialog
+import dev.valerii.payflo.model.BillItem
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
@@ -33,6 +38,8 @@ import dev.valerii.payflo.viewmodel.AddExpenseViewModel
 import dev.valerii.payflo.viewmodel.CreateRoomUiState
 import dev.valerii.payflo.viewmodel.CreateRoomViewModel
 import dev.valerii.payflo.viewmodel.GroupCreationState
+import io.ktor.util.decodeBase64Bytes
+import kotlinx.coroutines.launch
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -40,12 +47,34 @@ import org.koin.core.component.inject
 class ExpenseDetailScreen(
     private val expense: Expense,
     private val participants: List<User>
-) : Screen {
+) : Screen, KoinComponent {
+    private val groupRepository: GroupRepository by inject()
+    private val userRepository: UserRepository by inject()
+
+
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        var billItems by remember { mutableStateOf<List<BillItem>>(emptyList()) }
+        var currentUserId by remember { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(expense.id) {
+            currentUserId = userRepository.getSavedCredentials()!!.userId
+            if (expense.isBillAttached) {
+                billItems = groupRepository.getBillItemsForExpense(expense.id)
+            }
+        }
+
+        fun handleItemClick(item: BillItem) {
+            // Launch a coroutine to handle the API call
+            kotlinx.coroutines.MainScope().launch {
+                groupRepository.toggleBillItemAssignment(item.id, currentUserId!!)
+                // Refresh bill items
+                billItems = groupRepository.getBillItemsForExpense(expense.id)
+            }
+        }
 
         Scaffold(
             topBar = {
@@ -93,35 +122,212 @@ class ExpenseDetailScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // Participants
-                item {
-                    Text(
-                        "Participants",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // List each participant and their share
-                val shareAmount = expense.amount / expense.participantIds.size
-                items(participants.filter { it.id in expense.participantIds }) { participant ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(participant.name)
+                // Bill Items section (if available)
+                if (expense.isBillAttached && billItems.isNotEmpty()) {
+                    item {
                         Text(
-                            "₴$shareAmount",
-                            color = if (participant.id == expense.paidById)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.error
+                            "Bill Items",
+                            style = MaterialTheme.typography.titleMedium
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    items(billItems) { item ->
+                        BillItemRow(
+                            item = item,
+                            participants = participants,
+                            onClick = { handleItemClick(item) }// Pass the participants here
+                        )
+                        Divider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    }
+
+
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                    // Participants
+                    item {
+                        ParticipantsList(
+                            participants = participants,
+                            billItems = billItems,
+                            paidById = expense.paidById
+                        )
+                    }
+                } else {
+                    // Participants with equal split (when no bill items)
+                    item {
+                        Text(
+                            "Participants",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+
+                    // List each participant and their share
+                    val shareAmount = expense.amount / expense.participantIds.size
+                    items(participants.filter { it.id in expense.participantIds }) { participant ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(participant.name)
+                            Text(
+                                "₴$shareAmount",
+                                color = if (participant.id == expense.paidById)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+
+
+    @Composable
+    private fun BillItemRow(
+        item: BillItem,
+        participants: List<User>,
+        onClick: () -> Unit
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "₴${item.totalPrice}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${item.quantity}x ₴${item.price}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                // Show profile pictures of participants who ordered this item
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    item.assignedToUserIds.forEach { userId ->
+                        participants.find { it.id == userId }?.let { user ->
+                            UserProfileImage(
+                                user = user,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .padding(horizontal = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun ParticipantsList(
+    participants: List<User>,
+    billItems: List<BillItem>,
+    paidById: String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            "Participants",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        participants.forEach { participant ->
+            val participantItems = billItems.filter { participant.id in it.assignedToUserIds }
+            val totalOwed = participantItems.sumOf { item ->
+                item.totalPrice / item.assignedToUserIds.size
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    UserProfileImage(
+                        user = participant,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(participant.name)
+                }
+                Text(
+                    "₴$totalOwed",
+                    color = if (participant.id == paidById)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserProfileImage(
+    user: User,
+    modifier: Modifier = Modifier
+) {
+    if (user.profilePicture != null) {
+        val imageData = user.profilePicture!!.decodeBase64Bytes()
+        ByteArrayImage(
+            imageBytes = imageData,
+            contentDescription = "Profile Picture",
+            modifier = modifier.clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        // Fallback if no profile picture
+        Box(
+            modifier = modifier
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = user.name.first().toString(),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

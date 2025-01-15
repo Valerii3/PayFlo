@@ -1,5 +1,6 @@
 package dev.valerii.payflo.repository
 
+import dev.valerii.payflo.model.BillItem
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.Group
 
@@ -24,4 +25,6 @@ interface GroupRepository {
         billImage: String?
     ): Result<String>
     suspend fun getGroupExpenses(groupId: String): Result<List<Expense>>
+    suspend fun getBillItemsForExpense(expenseId: String): List<BillItem>
+    suspend fun toggleBillItemAssignment(itemId: String, userId: String)
 }
