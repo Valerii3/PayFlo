@@ -21,3 +21,9 @@ data class CreateGroupRequest(
     val photo: String? = null,
     val totalAmount: Double = 0.0
 )
+
+@Serializable
+data class UpdateGroupRequest(
+    val name: String? = null,
+    val photo: String? = null
+)

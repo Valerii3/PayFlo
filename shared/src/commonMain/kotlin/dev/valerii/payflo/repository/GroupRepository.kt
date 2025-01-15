@@ -12,4 +12,5 @@ interface GroupRepository {
     suspend fun getGroupsForUser(userId: String): List<Group>
     suspend fun getGroup(id: String): Group?
     suspend fun joinGroup(inviteCode: String, userId: String): Result<Group>
+    suspend fun updateGroup(groupId: String, name: String?, photo: String?): Group
 }

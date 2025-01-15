@@ -51,8 +51,11 @@ import dev.valerii.payflo.ioDispatcher
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
 import dev.valerii.payflo.rememberImagePicker
+import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
+import dev.valerii.payflo.viewmodel.GroupSettingsUiState
+import dev.valerii.payflo.viewmodel.GroupSettingsViewModel
 import dev.valerii.payflo.viewmodel.ProfileUiState
 import dev.valerii.payflo.viewmodel.ProfileViewModel
 import io.ktor.util.decodeBase64Bytes
@@ -62,12 +65,26 @@ import org.koin.core.component.inject
 
 
 class GroupSettingsScreen(private val group: Group) : Screen, KoinComponent {
+    private val groupRepository: GroupRepository by inject()
+    private val viewModel by lazy { GroupSettingsViewModel(groupRepository, group.id) }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val uiState by viewModel.uiState.collectAsState()
         var isEditingName by remember { mutableStateOf(false) }
         var editedName by remember { mutableStateOf(group.name) }
+
+        val pickImage = rememberImagePicker { imageBytes ->
+            viewModel.updateGroupPicture(imageBytes)
+        }
+
+        LaunchedEffect(Unit) {
+            withContext(ioDispatcher) {
+                viewModel.loadGroup()
+            }
+        }
 
         Scaffold(
             topBar = {
@@ -81,117 +98,156 @@ class GroupSettingsScreen(private val group: Group) : Screen, KoinComponent {
                 )
             }
         ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Group Image Section
-                Box(
-                    modifier = Modifier.padding(top = 32.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape),
-                        color = MaterialTheme.colorScheme.secondaryContainer
+            when (val state = uiState) {
+                is GroupSettingsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(24.dp)
-                                .fillMaxSize(),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        CircularProgressIndicator()
+                    }
+                }
+
+                is GroupSettingsUiState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
+                }
 
-                    IconButton(
-                        onClick = { /* Handle group picture change */ },
+                is GroupSettingsUiState.Success -> {
+                    Column(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = (-8).dp, y = (-8).dp)
-                            .size(36.dp),
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer
+                        // Group Image Section
+                        Box(
+                            modifier = Modifier.padding(top = 32.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "Change Group Picture",
-                                modifier = Modifier.padding(8.dp)
+                            if (state.group.photo != null) {
+                                val imageData = state.group.photo!!.decodeBase64Bytes()
+                                print("IMAGE:" + imageData)
+                                ByteArrayImage(
+                                    imageBytes = imageData,
+                                    contentDescription = "Group Picture",
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                println("NO IMAGE")
+                                Surface(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .padding(24.dp)
+                                            .fillMaxSize(),
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { pickImage() },
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .offset(x = (-8).dp, y = (-8).dp)
+                                    .size(36.dp),
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Change Group Picture",
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Name Section
+                        if (isEditingName) {
+                            OutlinedTextField(
+                                value = editedName,
+                                onValueChange = { editedName = it },
+                                label = { Text("Group Name") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(0.8f)
                             )
+                            Button(
+                                onClick = {
+                                    viewModel.updateGroupName(editedName)
+                                    isEditingName = false
+                                },
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                Text("Save")
+                            }
+                        } else {
+                            Text(
+                                text = state.group.name,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                            Text(
+                                text = "${state.group.participants.size} members",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(
+                                onClick = {
+                                    editedName = state.group.name
+                                    isEditingName = true
+                                }
+                            ) {
+                                Text("Edit Name")
+                            }
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                        // Pincode Section
+                        Text(
+                            text = "Pincode: ${state.group.inviteCode}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
 
-                // Name Section
-                if (isEditingName) {
-                    OutlinedTextField(
-                        value = editedName,
-                        onValueChange = { editedName = it },
-                        label = { Text("Group Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(0.8f)
-                    )
-                    Button(
-                        onClick = {
-                            // Handle name update
-                            isEditingName = false
-                        },
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text("Save")
-                    }
-                } else {
-                    Text(
-                        text = group.name,
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    Text(
-                        text = "${group.participants.size} members",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(
-                        onClick = {
-                            editedName = group.name
-                            isEditingName = true
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Participants List
+                        Text(
+                            text = "Participants",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(bottom = 8.dp)
+                        )
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(state.group.participants) { participant ->
+                                UserItem(participant)
+                            }
                         }
-                    ) {
-                        Text("Edit Name")
-                    }
-                }
-
-                // Pincode Section
-                Text(
-                    text = "Pincode: ${group.inviteCode}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Participants List
-                Text(
-                    text = "Participants",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 8.dp)
-                )
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(group.participants) { participant ->
-                        UserItem(participant)
                     }
                 }
             }

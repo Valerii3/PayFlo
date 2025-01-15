@@ -176,24 +176,26 @@ fun Route.userRoutes() {
                     .selectAll().where { Groups.id eq id }
                     .firstOrNull() ?: return@transaction null
 
+
                 val participants = GroupMembers
                     .innerJoin(Users)
                     .selectAll().where { GroupMembers.groupId eq id }
                     .map { row ->
-                        hashMapOf(
-                            "id" to row[Users.id],
-                            "name" to row[Users.name],
-                            "profilePicture" to row[Users.profilePicture]
+                        User(
+                            id = row[Users.id],
+                            name = row[Users.name],
+                            profilePicture = row[Users.profilePicture]
                         )
                     }
 
-                hashMapOf(
-                    "id" to groupData[Groups.id],
-                    "inviteCode" to groupData[Groups.inviteCode],
-                    "name" to groupData[Groups.name],
-                    "totalAmount" to groupData[Groups.totalAmount],
-                    "creatorId" to groupData[Groups.creatorId],
-                    "participants" to participants
+                Group(
+                    id = groupData[Groups.id],
+                    inviteCode = groupData[Groups.inviteCode],
+                    name = groupData[Groups.name],
+                    photo = groupData[Groups.photo],
+                    totalAmount = groupData[Groups.totalAmount],
+                    creatorId = groupData[Groups.creatorId],
+                    participants = participants
                 )
             }
 
@@ -332,6 +334,51 @@ fun Route.userRoutes() {
         } catch (e: Exception) {
             call.respond(HttpStatusCode.InternalServerError, "An unexpected error occurred")
         }
+    }
+
+    // Add this inside the Route.userRoutes() function
+
+    put("/groups/{id}") {
+        val id = call.parameters["id"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+        val groupUpdate = call.receive<Map<String, String>>()  // Changed to Map<String, String>
+
+        val updatedGroup = transaction {
+            // Update group information
+            Groups.update({ Groups.id eq id }) {
+                groupUpdate["name"]?.let { name -> it[Groups.name] = name }
+                groupUpdate["photo"]?.let { photo -> it[Groups.photo] = photo }
+            }
+
+            // Fetch updated group with participants
+            val groupData = Groups
+                .selectAll().where { Groups.id eq id }
+                .firstOrNull() ?: return@transaction null
+
+            val participants = GroupMembers
+                .innerJoin(Users)
+                .selectAll().where { GroupMembers.groupId eq id }
+                .map { row ->
+                    User(
+                        id = row[Users.id],
+                        name = row[Users.name],
+                        profilePicture = row[Users.profilePicture]
+                    )
+                }
+
+            Group(
+                id = groupData[Groups.id],
+                inviteCode = groupData[Groups.inviteCode],
+                name = groupData[Groups.name],
+                photo = groupData[Groups.photo],
+                totalAmount = groupData[Groups.totalAmount],
+                creatorId = groupData[Groups.creatorId],
+                participants = participants
+            )
+        }
+
+        updatedGroup?.let {
+            call.respond(it)
+        } ?: call.respond(HttpStatusCode.NotFound)
     }
 }
 
