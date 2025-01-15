@@ -17,6 +17,7 @@ import io.ktor.server.routing.put
 import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.alias
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -85,16 +86,10 @@ fun Route.userRoutes() {
     }
 
     post("/groups") {
-        println("WITHIN POST")
         val request = call.receive<CreateGroupRequest>()
-        println("RECEIVED PARAMS: $request")
         // Generate necessary values for the group
         val groupId = UUID.randomUUID().toString()
-     /*   val creatorId = params["creatorId"] as? String
-            ?: return@post call.respond(HttpStatusCode.BadRequest, "Creator ID is required")
-        val memberIds = params["memberIds"] as? List<String> ?: emptyList() */
         val inviteCode = generateUniqueInviteCode()
-        println("UNDER POST")
         try {
             // Use a transaction block to insert into the database
             val group = transaction {
@@ -122,9 +117,7 @@ fun Route.userRoutes() {
                     "id" to groupId,
                 )
             }
-            println("ALMOST DONE")
-            // Send the response
-            println("GROUP: $group")
+
             call.respond(HttpStatusCode.Created, group)
         } catch (e: IllegalArgumentException) {
             call.respond(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters")
@@ -244,6 +237,46 @@ fun Route.userRoutes() {
         }
     }
 
+    get("/groups/by-invite-code/{code}") {
+        val code = call.parameters["code"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+        try {
+            val group = transaction {
+                val groupData = Groups
+                    .selectAll().where { Groups.inviteCode eq code }
+                    .firstOrNull() ?: return@transaction null
+
+                val participants = GroupMembers
+                    .innerJoin(Users)
+                    .selectAll().where { GroupMembers.groupId eq groupData[Groups.id] }
+                    .map { row ->
+                        User(
+                            id = row[Users.id],
+                            name = row[Users.name],
+                            profilePicture = row[Users.profilePicture]
+                        )
+                    }
+
+                Group(
+                    id = groupData[Groups.id],
+                    inviteCode = groupData[Groups.inviteCode],
+                    name = groupData[Groups.name],
+                    totalAmount = groupData[Groups.totalAmount],
+                    creatorId = groupData[Groups.creatorId],
+                    participants = participants
+                )
+            }
+
+            if (group == null) {
+                call.respond(HttpStatusCode.NotFound)
+            } else {
+                call.respond(group)
+            }
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
+        }
+    }
+
     post("/users/{id}/friends") {
         val userId = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
         val friendId = call.receive<Map<String, String>>()["friendId"]
@@ -259,6 +292,45 @@ fun Route.userRoutes() {
             call.respond(HttpStatusCode.OK)
         } catch (e: Exception) {
             call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
+        }
+    }
+
+    post("/groups/join") {
+        val params = call.receive<Map<String, String>>()
+        val inviteCode = params["inviteCode"] ?: return@post call.respond(HttpStatusCode.BadRequest, "Invite code is required")
+        val userId = params["userId"] ?: return@post call.respond(HttpStatusCode.BadRequest, "User ID is required")
+
+        try {
+            val group = transaction {
+                // Find group by invite code
+                val groupData = Groups
+                    .selectAll().where { Groups.inviteCode eq inviteCode }
+                    .firstOrNull() ?: return@transaction null
+
+                // Check if user is already a member
+                val isAlreadyMember = GroupMembers
+                    .selectAll()
+                    .where {
+                        GroupMembers.groupId.eq(groupData[Groups.id])
+                            .and(GroupMembers.userId.eq(userId))
+                    }
+                    .count() > 0
+
+                if (!isAlreadyMember) {
+                    // Add user to group members
+                    GroupMembers.insert {
+                        it[this.groupId] = groupData[Groups.id]
+                        it[this.userId] = userId
+                    }
+                }
+
+                // Return group data
+                groupData[Groups.id]
+            } ?: return@post call.respond(HttpStatusCode.NotFound, "Group not found")
+
+            call.respond(HttpStatusCode.OK, mapOf("groupId" to group))
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, "An unexpected error occurred")
         }
     }
 }

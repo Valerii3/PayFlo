@@ -10,6 +10,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 
 class GroupRepositoryImpl(
     private val httpClient: HttpClient,
@@ -47,16 +48,24 @@ class GroupRepositoryImpl(
             null
         }
 
-    override suspend fun joinGroup(inviteCode: String, userId: String): Result<Unit> =
+    override suspend fun joinGroup(inviteCode: String, userId: String): Result<Group> =
         try {
-            httpClient.post("$BASE_URL/groups/join") {
+            println("Attempting to join group with code: $inviteCode")
+            val joinResponse = httpClient.post("$BASE_URL/groups/join") {
                 contentType(ContentType.Application.Json)
                 setBody(mapOf(
                     "inviteCode" to inviteCode,
                     "userId" to userId
                 ))
             }
-            Result.success(Unit)
+            println("RESPONSE IS ${joinResponse.status}")
+            // After joining, fetch the group details
+            if (joinResponse.status.isSuccess()) {
+                val group = httpClient.get("$BASE_URL/groups/by-invite-code/$inviteCode").body<Group>()
+                Result.success(group)
+            } else {
+                Result.failure(Exception("Failed to join group"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

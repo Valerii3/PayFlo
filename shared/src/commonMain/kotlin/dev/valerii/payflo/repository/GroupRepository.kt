@@ -11,5 +11,5 @@ interface GroupRepository {
     ): Group
     suspend fun getGroupsForUser(userId: String): List<Group>
     suspend fun getGroup(id: String): Group?
-    suspend fun joinGroup(inviteCode: String, userId: String): Result<Unit>
+    suspend fun joinGroup(inviteCode: String, userId: String): Result<Group>
 }

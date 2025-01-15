@@ -57,7 +57,7 @@ class GroupsScreen : Screen, KoinComponent {
                 TopAppBar(
                     title = { Text("Groups") },
                     actions = {
-                        IconButton(onClick = { navigator.push(CreateRoomScreen()) }) {
+                        IconButton(onClick = { navigator.push(GroupChoiceScreen()) }) {
                             Icon(Icons.Default.Add, "Create New Group")
                         }
                     }
