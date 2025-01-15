@@ -172,19 +172,17 @@ class AddExpenseScreen(private val group: Group) : Screen, KoinComponent {
 
                 Button(
                     onClick = {
-                        amount.toDoubleOrNull()?.let { amountValue ->
-                            viewModel.addExpense(
-                                name = expenseName,
-                                amount = amountValue,
-                                participantIds = selectedParticipants.toList(),
-                                billImage = billImageBase64
-                            )
-                        }
+                        viewModel.addExpense(
+                            name = expenseName,
+                            amount = amount.toDoubleOrNull() ?: 0.0,
+                            participantIds = selectedParticipants.toList(),
+                            billImage = billImageBase64
+                        )
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = expenseName.isNotBlank() &&
-                            amount.isNotBlank() &&
-                            selectedParticipants.isNotEmpty()
+                            selectedParticipants.isNotEmpty() &&
+                            (amount.isNotBlank() || billImageBase64 != null)
                 ) {
                     Text("Add Expense")
                 }

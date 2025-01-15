@@ -22,6 +22,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -422,8 +423,16 @@ fun Route.userRoutes() {
             }
 
             if (request.isBillAttached && request.billImage != null) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    processBillWithLLM(expenseId, request.billImage!!)
+                val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+                scope.launch {
+                    try {
+                        println("Starting bill processing in coroutine...")
+                        processBillWithLLM(expenseId, request.billImage!!)
+                        println("Bill processing completed successfully")
+                    } catch (e: Exception) {
+                        println("Error in bill processing coroutine: ${e.message}")
+                        e.printStackTrace()
+                    }
                 }
             }
 
@@ -488,10 +497,13 @@ fun generateUniqueInviteCode(): String {
 }
 
 suspend fun processBillWithLLM(expenseId: String, billImage: String) {
+    println("Starting bill processing for expense: $expenseId")
     val chatGPT = ChatGPT()
     try {
+        println("Calling ChatGPT for bill processing...")
         // billImage is already base64 encoded in your case
         val billData = chatGPT.processBillImage(billImage)
+        println("Received bill data: $billData")
 
         transaction {
             // Update the expense total amount if needed
