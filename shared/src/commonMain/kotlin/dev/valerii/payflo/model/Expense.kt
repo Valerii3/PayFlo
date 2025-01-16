@@ -10,7 +10,8 @@ data class Expense(
     val paidById: String,
     val participantIds: List<String>,
     val isBillAttached: Boolean,
-    val billImage: String?
+    val billImage: String?,
+    val participantShares: Map<String, Double> = emptyMap()
 )
 
 @Serializable

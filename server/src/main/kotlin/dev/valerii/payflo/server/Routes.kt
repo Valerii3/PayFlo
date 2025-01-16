@@ -405,12 +405,12 @@ fun Route.userRoutes() {
                 }
 
                 // Add participants and their shares
-                if (!request.isBillAttached) {
-                    request.participantIds.forEach { participantId ->
-                        ExpenseParticipants.insert {
-                            it[this.expenseId] = expenseId
-                            it[userId] = participantId
-                            it[this.share] = share
+                request.participantIds.forEach { participantId ->
+                    ExpenseParticipants.insert {
+                        it[this.expenseId] = expenseId
+                        it[userId] = participantId
+                        it[this.share] = if (request.isBillAttached) 0.0 else {
+                            (request.amount / request.participantIds.size).roundToTwoDecimals()
                         }
                     }
                 }
@@ -448,16 +448,18 @@ fun Route.userRoutes() {
                         val participants = ExpenseParticipants
                             .selectAll()
                             .where { ExpenseParticipants.expenseId eq expenseId }
-                            .map { it[ExpenseParticipants.userId] }
+                            .associate { it[ExpenseParticipants.userId] to it[ExpenseParticipants.share] }
+                           // .map { it[ExpenseParticipants.userId] }
 
                         Expense(
                             id = expenseId,
                             name = row[Expenses.name],
                             amount = row[Expenses.amount],
                             paidById = row[Expenses.creatorId],
-                            participantIds = participants,
+                            participantIds = participants.keys.toList(),
                             isBillAttached = row[Expenses.isBillAttached],
-                            billImage = row[Expenses.billPhoto]
+                            billImage = row[Expenses.billPhoto],
+                            participantShares = participants
                         )
                     }
 
@@ -515,6 +517,13 @@ fun Route.userRoutes() {
         val userId = call.receive<Map<String, String>>()["userId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
 
         transaction {
+            val billItem = BillItems
+                .selectAll()
+                .where { BillItems.id eq itemId }
+                .firstOrNull() ?: return@transaction
+
+            val expenseId = billItem[BillItems.expenseId]
+
             // Check if assignment exists
             val existingAssignment = BillItemAssignments
                 .selectAll().where { (BillItemAssignments.billItemId eq itemId) and (BillItemAssignments.userId eq userId) }
@@ -525,10 +534,41 @@ fun Route.userRoutes() {
                 BillItemAssignments.deleteWhere {
                     (billItemId eq itemId) and (BillItemAssignments.userId eq userId)
                 }
+
+                // remove the user from the expense participants
+                val remainingAssignments = BillItemAssignments
+                    .selectAll()
+                    .where { BillItemAssignments.userId eq userId }
+                    .count()
+
+                if (remainingAssignments == 0L) {
+                    ExpenseParticipants.deleteWhere {
+                        (ExpenseParticipants.expenseId eq expenseId) and
+                                (ExpenseParticipants.userId eq userId)
+                    }
+                }
             } else {
                 BillItemAssignments.insert {
                     it[billItemId] = itemId
                     it[this.userId] = userId
+                }
+
+                // add
+                val participantExists = ExpenseParticipants
+                    .selectAll()
+                    .where {
+                        (ExpenseParticipants.expenseId eq expenseId) and
+                                (ExpenseParticipants.userId eq userId)
+                    }.count() > 0
+
+                if (!participantExists) {
+                    // Calculate initial share (you might want to adjust this logic)
+                    val itemAmount = billItem[BillItems.price]
+                    ExpenseParticipants.insert {
+                        it[this.expenseId] = expenseId
+                        it[this.userId] = userId
+                        it[share] = itemAmount
+                    }
                 }
             }
         }
@@ -589,3 +629,7 @@ suspend fun processBillWithLLM(expenseId: String, billImage: String) {
         e.printStackTrace()
     }
 }
+
+@Suppress("FLOAT_IN_ACCURATE_CALCULATIONS")
+fun Double.roundToTwoDecimals(): Double =
+    (this * 100).toInt() / 100.0

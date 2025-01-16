@@ -35,9 +35,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import dev.valerii.payflo.ByteArrayImage
+import dev.valerii.payflo.image.ByteArrayImage
+import dev.valerii.payflo.image.rememberImagePicker
+
 import dev.valerii.payflo.ioDispatcher
-import dev.valerii.payflo.rememberImagePicker
+
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.ProfileUiState
@@ -46,6 +48,7 @@ import io.ktor.util.decodeBase64Bytes
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+
 
 class ProfileScreen : Screen, KoinComponent {
     private val userRepository: UserRepository by inject()
@@ -61,7 +64,6 @@ class ProfileScreen : Screen, KoinComponent {
         val pickImage = rememberImagePicker { imageBytes ->
             viewModel.updateProfilePicture(imageBytes)
         }
-
 
         LaunchedEffect(Unit) {
             withContext(ioDispatcher) {

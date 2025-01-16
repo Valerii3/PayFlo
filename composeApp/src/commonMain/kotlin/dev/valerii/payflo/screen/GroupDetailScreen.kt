@@ -30,7 +30,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -49,7 +48,6 @@ import androidx.compose.material3.CardDefaults
 import dev.valerii.payflo.model.Expense
 import dev.valerii.payflo.model.User
 import dev.valerii.payflo.repository.UserRepository
-import dev.valerii.payflo.storage.SettingsStorage
 
 class GroupDetailScreen(private val group: Group) : Screen, KoinComponent {
     private val groupRepository: GroupRepository by inject()
@@ -194,21 +192,35 @@ fun ExpenseCard(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                val amount = if (expense.paidById == currentUserId) {
-                    "+₴${expense.amount}"
-                } else if (expense.participantIds.contains(currentUserId)) {
-                    "-₴${expense.amount / expense.participantIds.size}"
-                } else {
-                    "₴0.0"
+                val userShare = expense.participantShares[currentUserId] ?: 0.0
+//                val amount = if (expense.paidById == currentUserId) {
+//                    "You are owned +€${expense.amount - expense.amount / expense.participantIds.size}"
+//                } else if (expense.participantIds.contains(currentUserId)) {
+//                    "You owe-€${expense.amount / expense.participantIds.size}"
+//                } else {
+//                    "€0.0"
+//                }
+                val amount = when {
+                    expense.paidById == currentUserId -> {
+                        // You paid the full amount but only owe your share
+                        val amountOwedToYou = (expense.amount - userShare).roundToTwoDecimals()
+                        "+€$amountOwedToYou"
+                    }
+                    currentUserId in expense.participantIds -> {
+                        // You owe your share
+                        "-€${userShare.roundToTwoDecimals()}"
+                    }
+                    else -> "€0.00"
                 }
 
                 Text(
                     text = amount,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (amount.startsWith("+"))
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.error
+                    color = when {
+                        amount.startsWith("+") -> MaterialTheme.colorScheme.primary
+                        amount.startsWith("-") -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
                 )
             }
 
@@ -225,12 +237,21 @@ fun ExpenseCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Show share amount
-            val shareAmount = expense.amount / expense.participantIds.size
+            val participantsText = if (expense.isBillAttached) {
+                "${expense.participantIds.size} participants • Shares vary by items"
+            } else {
+                val evenShare = (expense.amount / expense.participantIds.size).roundToTwoDecimals()
+                "${expense.participantIds.size} participants • €$evenShare each"
+            }
+
             Text(
-                text = "${expense.participantIds.size} participants • ₴$shareAmount each",
+                text = participantsText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
+fun Double.roundToTwoDecimals(): Double =
+    (this * 100).toInt() / 100.0
