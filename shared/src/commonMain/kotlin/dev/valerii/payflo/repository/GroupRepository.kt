@@ -15,6 +15,7 @@ interface GroupRepository {
     suspend fun getGroup(id: String): Group?
     suspend fun joinGroup(inviteCode: String, userId: String): Result<Group>
     suspend fun updateGroup(groupId: String, name: String?, photo: String?): Group
+    @Suppress("TOO_MANY_PARAMETERS")
     suspend fun addExpense(
         groupId: String,
         name: String,

@@ -21,7 +21,6 @@ import io.ktor.http.isSuccess
 class GroupRepositoryImpl(
     private val httpClient: HttpClient,
 ) : GroupRepository {
-
     override suspend fun createGroup(
         name: String,
         photo: String?,
@@ -53,7 +52,6 @@ class GroupRepositoryImpl(
 
     override suspend fun getGroup(id: String): Group? =
         try {
-            println("Fetching group with ID: $id")
             httpClient.get("$BASE_URL/groups/$id").body()
         } catch (e: Exception) {
             null
@@ -61,7 +59,6 @@ class GroupRepositoryImpl(
 
     override suspend fun joinGroup(inviteCode: String, userId: String): Result<Group> =
         try {
-            println("Attempting to join group with code: $inviteCode")
             val joinResponse = httpClient.post("$BASE_URL/groups/join") {
                 contentType(ContentType.Application.Json)
                 setBody(mapOf(
@@ -69,7 +66,7 @@ class GroupRepositoryImpl(
                     "userId" to userId
                 ))
             }
-            println("RESPONSE IS ${joinResponse.status}")
+
             // After joining, fetch the group details
             if (joinResponse.status.isSuccess()) {
                 val group = httpClient.get("$BASE_URL/groups/by-invite-code/$inviteCode").body<Group>()
@@ -82,7 +79,6 @@ class GroupRepositoryImpl(
         }
 
     override suspend fun updateGroup(groupId: String, name: String?, photo: String?): Group {
-        println("Sending update name request for group: $groupId") // Debug log
         val response = httpClient.put("$BASE_URL/groups/$groupId") {
             contentType(ContentType.Application.Json)
             setBody(UpdateGroupRequest(
@@ -90,12 +86,12 @@ class GroupRepositoryImpl(
                 photo = photo
             ))
         }
-        println("Received response status: ${response.status}") // Debug log
+
         val group = response.body<Group>()
-        println("Deserialized group name: ${group.name}") // Debug log
         return group
     }
 
+    @Suppress("TOO_MANY_PARAMETERS")
     override suspend fun addExpense(
         groupId: String,
         name: String,
@@ -161,12 +157,12 @@ class GroupRepositoryImpl(
                 orderDescription = orderDescription,
                 billItems = billItems
             )
-            print("HELLO")
+
             val matchedItemIds = httpClient.post("$BASE_URL/analyze-order") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }.body<List<String>>()
-            print("HELLO2")
+
             // Then toggle assignments for each matched item
             matchedItemIds.forEach { itemId ->
                 toggleBillItemAssignment(itemId, userId)
@@ -174,8 +170,5 @@ class GroupRepositoryImpl(
         } catch (e: Exception) {
             throw e
         }
-
-
     }
-
 }

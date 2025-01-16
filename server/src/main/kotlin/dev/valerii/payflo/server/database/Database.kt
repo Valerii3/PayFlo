@@ -11,7 +11,7 @@ object Users : Table() {
 
 object Groups : Table() {
     val id = varchar("id", 128)
-    val inviteCode = varchar("invite_code", 6).uniqueIndex()  // Add unique constraint
+    val inviteCode = varchar("invite_code", 6).uniqueIndex()
     val name = varchar("name", 255)
     val photo = text("photo").nullable()
     val totalAmount = double("total_amount")
@@ -53,9 +53,9 @@ object BillItems : Table() {
     val id = varchar("id", 128)
     val expenseId = varchar("expense_id", 128).references(Expenses.id)
     val name = varchar("name", 255)
-    val price = double("price")         // Price per item
-    val quantity = integer("quantity")  // How many of this item
-    val totalPrice = double("total_price")  // Price * quantity
+    val price = double("price")
+    val quantity = integer("quantity")
+    val totalPrice = double("total_price")
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -64,4 +64,3 @@ object BillItemAssignments : Table() {
     val userId = varchar("user_id", 128).references(Users.id)
     override val primaryKey = PrimaryKey(billItemId, userId)
 }
-

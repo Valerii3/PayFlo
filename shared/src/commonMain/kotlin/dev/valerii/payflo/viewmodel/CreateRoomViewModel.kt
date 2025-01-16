@@ -8,9 +8,9 @@ import dev.valerii.payflo.storage.SettingsStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 sealed class GroupCreationState {
     object Idle : GroupCreationState()
@@ -32,7 +32,6 @@ class CreateRoomViewModel(
 ) {
     private val _uiState = MutableStateFlow<CreateRoomUiState>(CreateRoomUiState.Loading)
     val uiState: StateFlow<CreateRoomUiState> = _uiState
-
     private val _groupCreationState = MutableStateFlow<GroupCreationState>(GroupCreationState.Idle)
     val groupCreationState: StateFlow<GroupCreationState> = _groupCreationState
 
@@ -62,12 +61,6 @@ class CreateRoomViewModel(
                     return@launch
                 }
                 val memberIds = selectedFriends.toList()
-                /*val finalMemberIds = if (memberIds.isEmpty()) {
-                    listOf(userId)  // Just the creator
-                } else {
-                    (memberIds + userId).toList()
-                } */
-
                 val createGroup = groupRepository.createGroup(
                     name = name,
                     photo = null,
@@ -77,7 +70,6 @@ class CreateRoomViewModel(
 
                 _groupCreationState.value = GroupCreationState.Success(createGroup)
             } catch (e: Exception) {
-                println("Network error: ${e.message}")
                 _groupCreationState.value =
                     GroupCreationState.Error(e.message ?: "Failed to create group")
             }

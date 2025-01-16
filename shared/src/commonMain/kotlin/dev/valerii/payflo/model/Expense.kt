@@ -7,8 +7,8 @@ data class Expense(
     val id: String,
     val name: String,
     val amount: Double,
-    val paidById: String, // who paid
-    val participantIds: List<String>, // who needs to pay,
+    val paidById: String,
+    val participantIds: List<String>,
     val isBillAttached: Boolean,
     val billImage: String?
 )

@@ -3,13 +3,12 @@ package dev.valerii.payflo.viewmodel
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.repository.UserRepository
-import dev.valerii.payflo.storage.SettingsStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class GroupDetailViewModel(
     private val groupRepository: GroupRepository,
@@ -24,7 +23,6 @@ class GroupDetailViewModel(
         _uiState.value = GroupDetailUiState.Loading
         scope.launch {
             try {
-
                 val currentUserId = userRepository.getSavedCredentials()?.userId!!
                 val group = groupRepository.getGroup(groupId)
                 val expenses = groupRepository.getGroupExpenses(groupId)

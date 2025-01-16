@@ -164,3 +164,7 @@
   enabled: false
 - name: FUNCTION_BOOLEAN_PREFIX
   enabled: false
+- name: FILE_NAME_INCORRECT
+  enabled: false
+- name: FILE_UNORDERED_IMPORTS
+  enabled: false

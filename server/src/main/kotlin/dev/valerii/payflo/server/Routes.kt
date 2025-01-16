@@ -12,8 +12,8 @@ import dev.valerii.payflo.server.database.BillItems
 import dev.valerii.payflo.server.database.Contacts
 import dev.valerii.payflo.server.database.ExpenseParticipants
 import dev.valerii.payflo.server.database.Expenses
-import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.GroupMembers
+import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.Users
 import dev.valerii.payflo.server.llm.ChatGPT
 import io.ktor.http.HttpStatusCode
@@ -38,6 +38,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.util.UUID
 
+@Suppress("TOO_LONG_FUNCTION")
 fun Route.userRoutes() {
     post("/users") {
         val params = call.receive<Map<String, String>>()
@@ -115,7 +116,6 @@ fun Route.userRoutes() {
                     it[this.inviteCode] = inviteCode
                     it[totalAmount] = request.totalAmount
                     it[creatorId] = request.creatorId
-
                 }
 
                 // Add all members (including the creator) to the GroupMembers table
@@ -141,10 +141,8 @@ fun Route.userRoutes() {
         }
     }
 
-
-    get("/users/{id}/groups") {  // Removed trailing slash as it's not needed
+    get("/users/{id}/groups") {
         val userId = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-
         try {
             val userGroups = transaction {
                 // Get all groups where user is a member
@@ -191,10 +189,10 @@ fun Route.userRoutes() {
                     .selectAll().where { Groups.id eq id }
                     .firstOrNull() ?: return@transaction null
 
-
                 val participants = GroupMembers
                     .innerJoin(Users)
-                    .selectAll().where { GroupMembers.groupId eq id }
+                    .selectAll()
+                    .where { GroupMembers.groupId eq id }
                     .map { row ->
                         User(
                             id = row[Users.id],
@@ -214,11 +212,7 @@ fun Route.userRoutes() {
                 )
             }
 
-            if (group == null) {
-                call.respond(HttpStatusCode.NotFound)
-            } else {
-                call.respond(group)
-            }
+            call.respond(group ?: HttpStatusCode.NotFound)
         } catch (e: Exception) {
             call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
         }
@@ -265,7 +259,8 @@ fun Route.userRoutes() {
 
                 val participants = GroupMembers
                     .innerJoin(Users)
-                    .selectAll().where { GroupMembers.groupId eq groupData[Groups.id] }
+                    .selectAll()
+                    .where { GroupMembers.groupId eq groupData[Groups.id] }
                     .map { row ->
                         User(
                             id = row[Users.id],
@@ -284,11 +279,7 @@ fun Route.userRoutes() {
                 )
             }
 
-            if (group == null) {
-                call.respond(HttpStatusCode.NotFound)
-            } else {
-                call.respond(group)
-            }
+            call.respond(group ?: HttpStatusCode.NotFound)
         } catch (e: Exception) {
             call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "Unknown error")))
         }
@@ -351,8 +342,6 @@ fun Route.userRoutes() {
         }
     }
 
-    // Add this inside the Route.userRoutes() function
-
     put("/groups/{id}") {
         val id = call.parameters["id"] ?: return@put call.respond(HttpStatusCode.BadRequest)
         val groupUpdate = call.receive<Map<String, String>>()  // Changed to Map<String, String>
@@ -371,7 +360,8 @@ fun Route.userRoutes() {
 
             val participants = GroupMembers
                 .innerJoin(Users)
-                .selectAll().where { GroupMembers.groupId eq id }
+                .selectAll()
+                .where { GroupMembers.groupId eq id }
                 .map { row ->
                     User(
                         id = row[Users.id],
@@ -430,11 +420,8 @@ fun Route.userRoutes() {
                 val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
                 scope.launch {
                     try {
-                        println("Starting bill processing in coroutine...")
                         processBillWithLLM(expenseId, request.billImage!!)
-                        println("Bill processing completed successfully")
                     } catch (e: Exception) {
-                        println("Error in bill processing coroutine: ${e.message}")
                         e.printStackTrace()
                     }
                 }
@@ -533,31 +520,24 @@ fun Route.userRoutes() {
                 .selectAll().where { (BillItemAssignments.billItemId eq itemId) and (BillItemAssignments.userId eq userId) }
                 .firstOrNull()
 
-            if (existingAssignment == null) {
-                // Add new assignment
-                BillItemAssignments.insert {
-                    it[this.billItemId] = itemId
-                    it[this.userId] = userId
+            @Suppress("AVOID_NULL_CHECKS")
+            if (existingAssignment != null) {
+                BillItemAssignments.deleteWhere {
+                    (billItemId eq itemId) and (BillItemAssignments.userId eq userId)
                 }
             } else {
-                // Remove existing assignment
-                BillItemAssignments.deleteWhere {
-                    (BillItemAssignments.billItemId eq itemId) and (BillItemAssignments.userId eq userId)
+                BillItemAssignments.insert {
+                    it[billItemId] = itemId
+                    it[this.userId] = userId
                 }
             }
         }
-
         call.respond(HttpStatusCode.OK)
     }
 
-
-
-
     post("/analyze-order") {
-        println("We are in post method yep yep")
         val chatGPT = ChatGPT()
         val request = call.receive<OrderAnalysisRequest>()
-        println("We are in post method yep yep2")
 
         val matchedItemIds = chatGPT.analyzeOrder(
             orderDescription = request.orderDescription,
@@ -565,11 +545,11 @@ fun Route.userRoutes() {
         )
         call.respond(matchedItemIds)
     }
-
 }
 
 fun generateUniqueInviteCode(): String {
-    fun generateCode() = (100000..999999).random().toString()
+    @Suppress("AVOID_NESTED_FUNCTIONS")
+    fun generateCode() = (100_000..999_999).random().toString()
 
     var code = generateCode()
     // Keep generating until we find an unused code
@@ -581,14 +561,11 @@ fun generateUniqueInviteCode(): String {
     return code
 }
 
+@Suppress("FUNCTION_NAME_INCORRECT_CASE")
 suspend fun processBillWithLLM(expenseId: String, billImage: String) {
-    println("Starting bill processing for expense: $expenseId")
-    val chatGPT = ChatGPT()
+    val chatGpt = ChatGPT()
     try {
-        println("Calling ChatGPT for bill processing...")
-        // billImage is already base64 encoded in your case
-        val billData = chatGPT.processBillImage(billImage)
-        println("Received bill data: $billData")
+        val billData = chatGpt.processBillImage(billImage)
 
         transaction {
             // Update the expense total amount if needed
@@ -609,6 +586,6 @@ suspend fun processBillWithLLM(expenseId: String, billImage: String) {
             }
         }
     } catch (e: Exception) {
-        println("Error processing bill for expense $expenseId: ${e.message}")
+        e.printStackTrace()
     }
 }

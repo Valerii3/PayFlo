@@ -1,6 +1,5 @@
 package dev.valerii.payflo.server
 
-import dev.valerii.payflo.model.BillItem
 import dev.valerii.payflo.server.database.BillItemAssignments
 import dev.valerii.payflo.server.database.BillItems
 import dev.valerii.payflo.server.database.Contacts
@@ -9,7 +8,6 @@ import dev.valerii.payflo.server.database.Expenses
 import dev.valerii.payflo.server.database.GroupMembers
 import dev.valerii.payflo.server.database.Groups
 import dev.valerii.payflo.server.database.Users
-
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install

@@ -20,6 +20,8 @@ class GroupSettingsViewModel(
 ) {
     private val _friends = MutableStateFlow<List<String>>(emptyList())
     val friends: StateFlow<List<String>> = _friends
+    private val _uiState = MutableStateFlow<GroupSettingsUiState>(GroupSettingsUiState.Loading)
+    val uiState: StateFlow<GroupSettingsUiState> = _uiState
 
     private val currentUserId: String?
         get() = settingsStorage.getString("user_id")
@@ -41,30 +43,11 @@ class GroupSettingsViewModel(
         }
     }
 
-    fun addFriend(friendId: String) {
-        scope.launch {
-            try {
-                currentUserId?.let { userId ->
-                    if (contactRepository.addFriend(userId, friendId)) {
-                        loadFriends() // Reload friends list after successful addition
-                    }
-                }
-            } catch (e: Exception) {
-                // Handle error
-            }
-        }
-    }
-
-    private val _uiState = MutableStateFlow<GroupSettingsUiState>(GroupSettingsUiState.Loading)
-    val uiState: StateFlow<GroupSettingsUiState> = _uiState
-
     fun loadGroup() {
         _uiState.value = GroupSettingsUiState.Loading
         scope.launch {
             try {
-                println("LOADING")
                 groupRepository.getGroup(groupId)?.let { group ->
-                    print(group)
                     _uiState.value = GroupSettingsUiState.Success(group)
                 } ?: run {
                     _uiState.value = GroupSettingsUiState.Error("Group not found")
@@ -75,15 +58,27 @@ class GroupSettingsViewModel(
         }
     }
 
+    fun addFriend(friendId: String) {
+        scope.launch {
+            try {
+                currentUserId?.let { userId ->
+                    if (contactRepository.addFriend(userId, friendId)) {
+                        loadFriends()
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
     fun updateGroupName(newName: String) {
         scope.launch {
             try {
                 val result = groupRepository.updateGroup(groupId, name = newName, photo = null)
-                println("Repository returned updated group: ${result.name}")
                 _uiState.value = GroupSettingsUiState.Success(result)
             } catch (e: Exception) {
-                println("Error updating name: ${e.message}") // Debug log
-                e.printStackTrace() // Print full stack trace
+                e.printStackTrace()
             }
         }
     }

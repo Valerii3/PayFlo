@@ -21,7 +21,12 @@ class AddExpenseViewModel(
     private val currentUserId: String
         get() = settingsStorage.getString("user_id")!!
 
-    fun addExpense(name: String, amount: Double, participantIds: List<String>, billImage: String?) {
+    fun addExpense(
+        name: String,
+        amount: Double,
+        participantIds: List<String>,
+        billImage: String?
+    ) {
         scope.launch {
             try {
                 _uiState.value = AddExpenseUiState.Loading
