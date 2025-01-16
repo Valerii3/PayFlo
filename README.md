@@ -3,6 +3,7 @@
 ## Table of Contents
 - [Motivation and Background](#motivation-and-background)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Technical Implementation](#technical-implementation)
   - [Server](#server)
   - [LLM](#llm)
@@ -14,8 +15,10 @@
   - [Android](#android)
   - [iOS](#ios)
   - [Gradle](#gradle)
+  - [Future Steps](#future-steps)
+    
 
-**PayFlo** is a mobile application (iOS & Android) that allows users to easily split bills between each other, with custom selection of participants. The main feature of the app is semantic search in the bill. Users can type in natural language what they bought/ordered, and then the app automatically calculates the position they ordered and total sum of it, based on the provided bill.
+**PayFlo** is a cross-platform mobile application (iOS & Android) that allows users to easily split bills between each other, with custom selection of participants. The main feature of the app is semantic search in the bill. Users can type in natural language what they bought/ordered, and then the app automatically calculates the position they ordered and total sum of it, based on the provided bill.
 
 ## Motivation and Background
 
@@ -40,7 +43,22 @@ The problem I wanted to solve was that when a group of friends goes to a cafe, a
   * Upload bill images for automatic item detection
   * AI-powered order analysis 
   * Automatically assign items to group members based on their orders - you typed what u ordered, and app assign you automatically to the corresponding items from the bill
-  * Support for both equal splits and item-based splits   
+  * Support for both equal splits and item-based splits
+ 
+## Screenshots
+
+[Watch Demo Version](https://drive.google.com/file/d/1t4N10hN1JCAW9NeEFBSr6J9gNnW5myTb/view?usp=sharing)
+
+<p align="center">
+  <img src="data/profile.png" alt="Image 1" width="25%"/>
+  <img src="data/create_group.png" alt="Image 2" width="25%"/>
+  <img src="data/group.png" alt="Image 3" width="25%"/>
+</p>
+
+<p align="center">
+  <img src="data/shares.png" alt="Image 1" width="25%"/>
+  <img src="data/bill.png" alt="Image 2" width="25%"/>
+</p>
 
 ## Technical Implementation
 
@@ -69,20 +87,56 @@ However, one of the hardest parts for me was making picture uploading work, beca
 
 ## How to run
 1) Clone the repository: `git clone git@github.com:Valerii3/PayFlo.git`
+2) Run `./gradlew build`
+
+3) Configure OpenAI API Key
+* Locate the file: `server/llm/ChatGPT.kt.`
+* Insert your OpenAI API key in the appropriate field.
+* To quickly find the correct location, search for `"Your API Key"` in the project files.
+  
+4) Possible: First-Time Run Issue (Fix)
+When running the application for the first time and creating a group, you may encounter the following error due to missing dependencies across different modules:
+```
+java.lang.NoClassDefFoundError: dev.valerii.payflo.model.CreateGroupRequest
+Caused by: java.lang.ClassNotFoundException: dev.valerii.payflo.model.CreateGroupRequest
+```
+Simply rerun the server, and the issue should be resolved.
+
+5) To test the bill-splitting feature, an example bill image is provided:
+   📂 `image/bill_example.png`
 
 #### Server
-2) Open project and access the `Application.kt` file under Server Folder
-3) Run the main method in the `Application.kt` file
+6) Open project and access the `Application.kt` file under Server Folder
+7) Run the main method in the `Application.kt` file
 
 #### Android
 To run your application on an Android emulator:
 
-4) Ensure you have an Android virtual device available. Otherwise, create one.
-5) Access the `MainActivity.kt` file in the `composeApp/androidMain/` folder
+8) Ensure you have an Android virtual device available. Otherwise, create one.
+9) Access the `MainActivity.kt` file in the `composeApp/androidMain/` folder
 
 #### IOS
-6) Open `iosApp` folder in Xcode and run the `IOSApp` file (entry-point to the application). Dont forget to select the device.
+10) Open `iosApp` folder in Xcode and run the `IOSApp` file (entry-point to the application). Dont forget to select the device.
 
 #### Gradle
 Additionally, I created 2 tasks: detekt and diktat, to maintain clean and readable code :)) 
+11) ./gradlew diktat
+
+
+## Future Steps
+1) **Currency Conversion Support**
+* Implement automatic currency conversion to facilitate international transactions.
+* Integrate real-time exchange rates to ensure accuracy.
+* Allow users to set a preferred currency for their transactions.
+
+2) **Optimized Expense Settlement Algorithm**
+* Develop a smarter algorithm to minimize the number of transactions within a group.
+
+3) **Additional Features & Enhancements**
+* Continuous UI Enhancements
+* Support for multiple bill images in a single transaction.
+* Integration with payment gateways for seamless bill settlements.
+
+## License
+This project is licensed under the Apache License 2.0
    
