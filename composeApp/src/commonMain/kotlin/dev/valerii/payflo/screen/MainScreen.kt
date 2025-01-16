@@ -22,9 +22,7 @@ class MainScreen : Screen {
 
     @Composable
     override fun Content() {
-
         var selectedItem by remember { mutableStateOf<BottomNavItem>(BottomNavItem.Groups) }
-
         Scaffold(
             bottomBar = {
                 NavigationBar {

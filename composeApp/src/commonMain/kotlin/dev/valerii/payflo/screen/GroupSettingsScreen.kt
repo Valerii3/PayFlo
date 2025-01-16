@@ -16,8 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,19 +46,18 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import dev.valerii.payflo.ByteArrayImage
+import dev.valerii.payflo.image.ByteArrayImage
+import dev.valerii.payflo.image.rememberImagePicker
+
 import dev.valerii.payflo.ioDispatcher
 import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
-import dev.valerii.payflo.rememberImagePicker
+
 import dev.valerii.payflo.repository.ContactRepository
 import dev.valerii.payflo.repository.GroupRepository
-import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.GroupSettingsUiState
 import dev.valerii.payflo.viewmodel.GroupSettingsViewModel
-import dev.valerii.payflo.viewmodel.ProfileUiState
-import dev.valerii.payflo.viewmodel.ProfileViewModel
 import io.ktor.util.decodeBase64Bytes
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -102,7 +101,7 @@ class GroupSettingsScreen(private val group: Group) : Screen, KoinComponent {
                     title = { Text("Group Settings") },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.Default.ArrowBack, "Go back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Go back")
                         }
                     }
                 )

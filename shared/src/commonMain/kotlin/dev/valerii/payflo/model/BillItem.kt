@@ -12,4 +12,3 @@ data class BillItem(
     val expenseId: String,
     val assignedToUserIds: List<String> = emptyList()
 )
-

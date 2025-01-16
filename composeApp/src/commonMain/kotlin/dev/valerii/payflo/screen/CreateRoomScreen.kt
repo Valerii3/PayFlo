@@ -5,13 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -20,12 +19,10 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.valerii.payflo.elements.CreateGroupDialog
 import dev.valerii.payflo.repository.ContactRepository
 import dev.valerii.payflo.repository.GroupRepository
-import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.storage.SettingsStorage
 import dev.valerii.payflo.viewmodel.CreateRoomUiState
 import dev.valerii.payflo.viewmodel.CreateRoomViewModel
 import dev.valerii.payflo.viewmodel.GroupCreationState
-import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -71,7 +68,6 @@ class CreateRoomScreen : Screen, KoinComponent {
                 onDismiss = { showCreateGroupDialog = false },
                 onConfirm = { groupName ->
                     viewModel.createGroup(groupName, selectedFriends)
-                   // navigator.push(MainScreen())
                 }
             )
         }
@@ -98,7 +94,7 @@ class CreateRoomScreen : Screen, KoinComponent {
                     },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.Default.ArrowBack, "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     },
                     actions = {

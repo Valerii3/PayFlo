@@ -6,42 +6,29 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import dev.valerii.payflo.ByteArrayImage
-import dev.valerii.payflo.elements.CreateGroupDialog
+
+import dev.valerii.payflo.image.ByteArrayImage
 import dev.valerii.payflo.model.BillItem
 import dev.valerii.payflo.model.Expense
-import dev.valerii.payflo.model.Group
 import dev.valerii.payflo.model.User
-import dev.valerii.payflo.repository.ContactRepository
 import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.repository.UserRepository
-import dev.valerii.payflo.storage.SettingsStorage
-import dev.valerii.payflo.viewmodel.AddExpenseUiState
-import dev.valerii.payflo.viewmodel.AddExpenseViewModel
-import dev.valerii.payflo.viewmodel.CreateRoomUiState
-import dev.valerii.payflo.viewmodel.CreateRoomViewModel
-import dev.valerii.payflo.viewmodel.GroupCreationState
 import io.ktor.util.decodeBase64Bytes
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -72,7 +59,7 @@ class ExpenseDetailScreen(
 
         fun handleItemClick(item: BillItem) {
             // Launch a coroutine to handle the API call
-            kotlinx.coroutines.MainScope().launch {
+            MainScope().launch {
                 groupRepository.toggleBillItemAssignment(item.id, currentUserId!!)
                 // Refresh bill items
                 billItems = groupRepository.getBillItemsForExpense(expense.id)
@@ -85,7 +72,7 @@ class ExpenseDetailScreen(
                     title = { Text(expense.name) },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.Default.ArrowBack, "Go back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Go back")
                         }
                     }
                 )
@@ -104,7 +91,7 @@ class ExpenseDetailScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        "₴${expense.amount}",
+                        "€${expense.amount}",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -248,7 +235,7 @@ class ExpenseDetailScreen(
                         ) {
                             Text(participant.name)
                             Text(
-                                "₴$shareAmount",
+                                "€$shareAmount",
                                 color = if (participant.id == expense.paidById)
                                     MaterialTheme.colorScheme.primary
                                 else
@@ -284,7 +271,7 @@ class ExpenseDetailScreen(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "₴${item.totalPrice}",
+                    "€${item.totalPrice}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -295,7 +282,7 @@ class ExpenseDetailScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "${item.quantity}x ₴${item.price}",
+                    "${item.quantity}x €${item.price}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
@@ -362,7 +349,7 @@ private fun ParticipantsList(
                     Text(participant.name)
                 }
                 Text(
-                    "₴$totalOwed",
+                    "€$totalOwed",
                     color = if (participant.id == paidById)
                         MaterialTheme.colorScheme.primary
                     else

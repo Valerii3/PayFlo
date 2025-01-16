@@ -6,16 +6,15 @@ import dev.valerii.payflo.repository.ContactRepositoryImpl
 import dev.valerii.payflo.repository.GroupRepository
 import dev.valerii.payflo.repository.GroupRepositoryImpl
 import org.koin.dsl.module
-import io.ktor.client.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import dev.valerii.payflo.repository.UserRepository
 import dev.valerii.payflo.repository.UserRepositoryImpl
 import dev.valerii.payflo.storage.SettingsStorage
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 
 val appModule = module {
-    // Create HttpClient
     single {
         HttpClient {
             install(ContentNegotiation) {
@@ -27,12 +26,10 @@ val appModule = module {
         }
     }
 
-    // Platform-specific SettingsStorage (implement in respective source sets)
     single<SettingsStorage> {
         getSettingsStorage()
     }
 
-    // UserRepository implementation
     single<UserRepository> {
         UserRepositoryImpl(
             httpClient = get(),
@@ -40,7 +37,6 @@ val appModule = module {
         )
     }
 
-    // GroupRepository implementation
     single<GroupRepository> {
         GroupRepositoryImpl(
             httpClient = get()
@@ -49,5 +45,3 @@ val appModule = module {
 
     single<ContactRepository> { ContactRepositoryImpl(get()) }
 }
-
-
